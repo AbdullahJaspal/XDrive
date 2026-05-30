@@ -3,7 +3,9 @@ import Image from 'next/image';
 import Link from 'next/link';
 
 import { HeroBookingStrip } from '@/components/landing/hero-booking-strip';
+import { pageContainerClass } from '@/components/layout/page-container';
 import { PageShell } from '@/components/layout/page-shell';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
 const proof = [
@@ -30,7 +32,7 @@ const timeline = [
 export default function HomePage() {
   return (
     <PageShell heroHeader>
-      <section className="relative min-h-[92vh] overflow-hidden text-primary-foreground">
+      <section className="relative min-h-screen overflow-hidden text-primary-foreground">
         <div className="absolute inset-0 -z-10">
           <Image
             src="/bg.png"
@@ -43,7 +45,12 @@ export default function HomePage() {
           <div className="hero-overlay absolute inset-0" aria-hidden />
         </div>
 
-        <div className="relative mx-auto flex min-h-[calc(92vh-5rem)] max-w-6xl flex-col justify-center px-4 py-24 sm:px-6">
+        <div
+          className={cn(
+            'relative flex min-h-screen flex-col justify-center pb-24 pt-[5.5rem] sm:pt-24',
+            pageContainerClass,
+          )}
+        >
           <p className="label-caps animate-hero-in text-luxury">Private hire · West Midlands</p>
           <h1 className="animate-hero-in mt-4 max-w-3xl text-balance text-5xl font-medium leading-[1.08] sm:text-6xl lg:text-7xl">
             Your journey,
@@ -74,7 +81,7 @@ export default function HomePage() {
       </section>
 
       <section className="border-b border-border bg-card py-20 sm:py-28">
-        <div className="mx-auto grid max-w-6xl gap-12 px-4 sm:px-6 lg:grid-cols-2 lg:items-center">
+        <div className={cn('grid gap-12 lg:grid-cols-2 lg:items-center', pageContainerClass)}>
           <div>
             <p className="label-caps text-luxury">The experience</p>
             <h2 className="mt-3 text-4xl font-medium sm:text-5xl">
@@ -113,7 +120,7 @@ export default function HomePage() {
       </section>
 
       <section className="bg-background py-20 sm:py-28">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+        <div className={pageContainerClass}>
           <div className="mb-14 max-w-xl">
             <p className="label-caps text-luxury">How it works</p>
             <h2 className="mt-3 text-4xl font-medium">Three steps to your car</h2>
@@ -138,7 +145,7 @@ export default function HomePage() {
       </section>
 
       <section className="border-t border-border bg-primary py-16 text-primary-foreground sm:py-20">
-        <div className="mx-auto max-w-3xl px-4 text-center sm:px-6">
+        <div className={cn(pageContainerClass, 'text-center')}>
           <h2 className="font-display text-3xl font-medium sm:text-4xl">Returning guest?</h2>
           <p className="mt-4 text-primary-foreground/60">
             Sign in to view trip history and book faster next time.

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 
+import { PageContainer } from '@/components/layout/page-container';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 
@@ -12,7 +13,7 @@ export default async function BookingConfirmationPage({ searchParams }: Confirma
 
   return (
     <PageShell>
-      <div className="mx-auto flex min-h-[60vh] max-w-lg flex-col items-center justify-center px-4 py-20 text-center sm:py-28">
+      <PageContainer className="flex min-h-[60vh] flex-col items-center justify-center py-20 text-center sm:py-28">
         <div className="mb-8 flex h-14 w-14 items-center justify-center rounded-full border border-luxury/40">
           <span className="font-display text-2xl text-luxury">✓</span>
         </div>
@@ -41,7 +42,7 @@ export default async function BookingConfirmationPage({ searchParams }: Confirma
             <Link href="/account">My trips</Link>
           </Button>
         </div>
-      </div>
+      </PageContainer>
     </PageShell>
   );
 }

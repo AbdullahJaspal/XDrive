@@ -5,6 +5,7 @@ import Pusher from 'pusher';
 import { UserRole } from '@uk-phv/shared-types';
 
 import { authenticateRequest } from '@/lib/server/auth/session';
+import { prisma } from '@/lib/server/db';
 import { AppError } from '@/lib/server/errors/app.error';
 export const runtime = 'nodejs';
 
@@ -46,7 +47,13 @@ export async function POST(request: NextRequest) {
       if (user.role !== UserRole.DRIVER) {
         throw AppError.forbidden('Driver channel requires driver role');
       }
-      void driverId;
+      const driver = await prisma.driver.findUnique({
+        where: { userId: user.id },
+        select: { id: true },
+      });
+      if (!driver || driver.id !== driverId) {
+        throw AppError.forbidden('Cannot subscribe to this driver channel');
+      }
     } else {
       throw AppError.forbidden('Unknown channel');
     }

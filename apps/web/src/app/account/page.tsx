@@ -1,15 +1,17 @@
 'use client';
 
-import { Calendar, Loader2, MapPin, Plus } from 'lucide-react';
+import { Calendar, MapPin, Plus } from 'lucide-react';
+import { AccountPageSkeleton } from '@/components/skeletons';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 
+import { PageContainer } from '@/components/layout/page-container';
 import { PageShell } from '@/components/layout/page-shell';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { isStaffRole } from '@/lib/auth/roles';
+import { getPostLoginPath, isDriverRole, isOperatorStaffRole } from '@/lib/auth/roles';
 import { clearTokens, fetchProfile, getAccessToken } from '@/lib/auth/session-client';
 import { apiRequest } from '@/lib/api/client';
 import type { BookingSummary } from '@uk-phv/shared-types';
@@ -43,8 +45,8 @@ export default function AccountPage() {
       router.replace('/login');
       return;
     }
-    if (isStaffRole(profile.role)) {
-      router.replace('/admin/dashboard');
+    if (isDriverRole(profile.role) || isOperatorStaffRole(profile.role)) {
+      router.replace(getPostLoginPath(profile.role));
       return;
     }
     setName(`${profile.firstName} ${profile.lastName}`);
@@ -62,19 +64,12 @@ export default function AccountPage() {
   }, [load]);
 
   if (loading) {
-    return (
-      <PageShell>
-        <div className="flex min-h-[40vh] flex-col items-center justify-center gap-4">
-          <Loader2 className="h-10 w-10 animate-spin text-primary" />
-          <p className="text-muted-foreground">Loading your trips…</p>
-        </div>
-      </PageShell>
-    );
+    return <AccountPageSkeleton />;
   }
 
   return (
     <PageShell>
-      <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6 sm:py-14">
+      <PageContainer className="py-10 sm:py-14">
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="label-caps text-luxury">Your account</p>
@@ -144,7 +139,7 @@ export default function AccountPage() {
             ))}
           </ul>
         )}
-      </div>
+      </PageContainer>
     </PageShell>
   );
 }

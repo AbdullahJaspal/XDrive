@@ -1,6 +1,7 @@
 import Link from 'next/link';
 
-import { BookingWizard } from '@/components/booking/booking-wizard';
+import { BookPageContent } from '@/components/booking/book-page-content';
+import { PageContainer } from '@/components/layout/page-container';
 import { PageShell } from '@/components/layout/page-shell';
 
 interface BookPageProps {
@@ -12,7 +13,7 @@ export default async function BookPage({ searchParams }: BookPageProps) {
 
   return (
     <PageShell>
-      <div className="mx-auto max-w-2xl px-4 py-12 sm:px-6 sm:py-20">
+      <PageContainer className="py-12 sm:py-20">
         <p className="label-caps text-luxury">Reservation</p>
         <h1 className="mt-2 font-display text-4xl font-medium sm:text-5xl">Book your journey</h1>
         <p className="mt-4 text-muted-foreground">
@@ -23,9 +24,9 @@ export default async function BookPage({ searchParams }: BookPageProps) {
         </p>
 
         <div className="surface-elevated mt-10 p-6 sm:p-10">
-          <BookingWizard initial={{ pickup, dropoff }} />
+          <BookPageContent initial={{ pickup, dropoff }} />
         </div>
-      </div>
+      </PageContainer>
     </PageShell>
   );
 }

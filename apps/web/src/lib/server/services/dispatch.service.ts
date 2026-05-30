@@ -9,6 +9,7 @@ export interface AssignDriverInput {
 import { AppError } from '../errors/app.error';
 import { emitToDriver, emitToOperator } from '../realtime';
 import { auditLogsService } from './audit-logs.service';
+import { bookingsService } from './bookings.service';
 
 export const dispatchService = {
   async assignDriver(bookingId: string, input: AssignDriverInput, performedBy: string) {
@@ -16,10 +17,16 @@ export const dispatchService = {
     if (!booking) throw AppError.notFound('Booking', bookingId);
 
     const driver = await prisma.driver.findFirst({
-      where: { id: input.driverId, operatorId: booking.operatorId, status: 'ACTIVE' },
+      where: {
+        id: input.driverId,
+        operatorId: booking.operatorId,
+        status: { in: ['ON_DUTY', 'ACTIVE'] },
+      },
     });
     if (!driver) {
-      throw AppError.complianceBlocked('Driver is not active or not licensed for dispatch');
+      throw AppError.complianceBlocked(
+        'Driver is off duty or not available for dispatch',
+      );
     }
 
     const vehicle = await prisma.vehicle.findFirst({
@@ -73,10 +80,8 @@ export const dispatchService = {
       driverId: input.driverId,
       vehicleId: input.vehicleId,
     });
-    await emitToDriver(input.driverId, 'booking:assigned', {
-      bookingId,
-      reference: booking.reference,
-    });
+    const summary = await bookingsService.findById(bookingId);
+    await emitToDriver(input.driverId, 'booking:assigned', summary);
 
     return updated;
   },

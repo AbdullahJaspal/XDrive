@@ -12,7 +12,13 @@ export function PageShell({ children, className, heroHeader }: PageShellProps) {
   return (
     <div className="flex min-h-screen flex-col">
       <PublicHeader hero={heroHeader} />
-      <div className={cn('flex-1 pt-[4.5rem] sm:pt-20', className)}>
+      <div
+        className={cn(
+          'flex-1',
+          !heroHeader && 'pt-[4.5rem] sm:pt-20',
+          className,
+        )}
+      >
         {children}
       </div>
       <PublicFooter />

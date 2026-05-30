@@ -6,9 +6,46 @@ import { cn } from '@/lib/utils';
 
 interface BrandLogoProps {
   className?: string;
+  /** Header: icon + wordmark on sm+; icon only on xs */
   responsive?: boolean;
+  /** Icon only — login panels, admin sidebar */
   markOnly?: boolean;
+  /** Over hero / dark backgrounds */
   onDark?: boolean;
+}
+
+function LogoMark({
+  onDark = false,
+  size = 'md',
+  alt = '',
+}: {
+  onDark?: boolean;
+  size?: 'md' | 'lg';
+  alt?: string;
+}) {
+  const box = size === 'lg' ? 'h-11 w-11' : 'h-10 w-10';
+  const img = size === 'lg' ? 'h-9 w-9' : 'h-8 w-8';
+
+  return (
+    <span
+      className={cn(
+        'relative flex shrink-0 items-center justify-center overflow-hidden rounded-lg',
+        box,
+        onDark
+          ? 'bg-white/10 ring-1 ring-white/20 backdrop-blur-sm'
+          : 'bg-primary shadow-sm ring-1 ring-primary/20',
+      )}
+    >
+      <Image
+        src="/logo.png"
+        alt={alt}
+        width={36}
+        height={36}
+        className={cn('object-contain mix-blend-screen', img)}
+        priority
+      />
+    </span>
+  );
 }
 
 export function BrandLogo({
@@ -17,31 +54,13 @@ export function BrandLogo({
   markOnly = false,
   onDark = false,
 }: BrandLogoProps) {
-  const markClass = cn(
-    'object-contain',
-    markOnly ? 'h-10 w-10' : 'h-9 w-9 sm:h-10 sm:w-10',
-    onDark ? 'drop-shadow-md' : 'rounded-sm bg-card p-0.5 shadow-sm',
-  );
-
-  const fullClass = cn(
-    'h-8 w-auto object-contain sm:h-9',
-    onDark ? 'brightness-0 invert drop-shadow-md' : 'rounded-sm bg-card px-2 py-0.5 shadow-sm',
-  );
-
   if (markOnly) {
     return (
       <Link
         href="/"
         className={cn('inline-flex shrink-0 transition-opacity hover:opacity-85', className)}
       >
-        <Image
-          src="/logo.png"
-          alt={BRAND.name}
-          width={40}
-          height={40}
-          className={markClass}
-          priority
-        />
+        <LogoMark onDark={onDark} size="lg" alt={BRAND.name} />
       </Link>
     );
   }
@@ -50,26 +69,30 @@ export function BrandLogo({
     return (
       <Link
         href="/"
-        className={cn('inline-flex shrink-0 items-center transition-opacity hover:opacity-85', className)}
+        className={cn(
+          'group inline-flex min-w-0 max-w-[min(100%,14rem)] items-center gap-3 transition-opacity hover:opacity-90',
+          className,
+        )}
       >
-        <Image
-          src="/logo.png"
-          alt={BRAND.name}
-          width={40}
-          height={40}
-          className={markClass}
-          priority
-        />
-        {!onDark ? (
-          <Image
-            src="/logo-full.png"
-            alt=""
-            width={160}
-            height={42}
-            className={cn('ml-2 hidden h-8 w-auto object-contain sm:block', fullClass)}
-            aria-hidden
-          />
-        ) : null}
+        <LogoMark onDark={onDark} />
+        <span className="flex min-w-0 flex-col">
+          <span
+            className={cn(
+              'truncate font-display text-base font-semibold leading-tight tracking-tight sm:text-[1.125rem]',
+              onDark ? 'text-white' : 'text-foreground',
+            )}
+          >
+            {BRAND.name}
+          </span>
+          <span
+            className={cn(
+              'hidden truncate text-[0.625rem] font-medium uppercase tracking-[0.18em] sm:block',
+              onDark ? 'text-luxury' : 'text-muted-foreground',
+            )}
+          >
+            Private hire
+          </span>
+        </span>
       </Link>
     );
   }
@@ -77,16 +100,30 @@ export function BrandLogo({
   return (
     <Link
       href="/"
-      className={cn('inline-flex shrink-0 transition-opacity hover:opacity-85', className)}
+      className={cn(
+        'group inline-flex min-w-0 items-center gap-3 transition-opacity hover:opacity-90',
+        className,
+      )}
     >
-      <Image
-        src="/logo-full.png"
-        alt={BRAND.name}
-        width={200}
-        height={52}
-        className={fullClass}
-        priority
-      />
+      <LogoMark onDark={onDark} />
+      <span className="flex min-w-0 flex-col">
+        <span
+          className={cn(
+            'font-display text-[1.125rem] font-semibold leading-tight tracking-tight',
+            onDark ? 'text-white' : 'text-foreground',
+          )}
+        >
+          {BRAND.name}
+        </span>
+        <span
+          className={cn(
+            'text-[0.625rem] font-medium uppercase tracking-[0.18em]',
+            onDark ? 'text-luxury' : 'text-muted-foreground',
+          )}
+        >
+          Private hire
+        </span>
+      </span>
     </Link>
   );
 }

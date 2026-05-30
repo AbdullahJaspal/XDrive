@@ -5,12 +5,13 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
+import { PageContainer } from '@/components/layout/page-container';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { getPostLoginPath, isStaffRole } from '@/lib/auth/roles';
+import { getPostLoginPath, isDriverRole, isOperatorStaffRole } from '@/lib/auth/roles';
 import { clearTokens, setTokens } from '@/lib/auth/session-client';
 import { apiRequest } from '@/lib/api/client';
 import type { AuthTokens } from '@uk-phv/shared-types';
@@ -53,7 +54,12 @@ export default function LoginPage() {
         const profile = await apiRequest<{ role: string }>('/users/me', {
           token: tokens.accessToken,
         });
-        if (isStaffRole(profile.role)) {
+        if (isDriverRole(profile.role)) {
+          clearTokens();
+          setError('Driver accounts must sign in at /driver/login.');
+          return;
+        }
+        if (isOperatorStaffRole(profile.role)) {
           clearTokens();
           setError('Operator accounts must use the staff login page.');
           return;
@@ -69,7 +75,8 @@ export default function LoginPage() {
 
   return (
     <PageShell>
-      <div className="mx-auto flex max-w-md flex-col px-4 py-12 sm:py-16">
+      <PageContainer className="flex flex-col py-12 sm:py-16">
+        <div className="mx-auto w-full max-w-md">
         <div className="mb-8 text-center">
           <p className="label-caps text-luxury">Guest account</p>
           <h1 className="mt-2 font-display text-4xl font-medium">
@@ -222,7 +229,8 @@ export default function LoginPage() {
             Dev: register a new account or use operator credentials at /staff/login
           </p>
         ) : null}
-      </div>
+        </div>
+      </PageContainer>
     </PageShell>
   );
 }

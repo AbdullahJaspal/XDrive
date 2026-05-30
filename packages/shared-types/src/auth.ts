@@ -33,6 +33,7 @@ export enum Permission {
 export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   [UserRole.SUPER_ADMIN]: Object.values(Permission),
   [UserRole.OPERATOR_ADMIN]: [
+    Permission.BOOKING_CREATE,
     Permission.BOOKING_READ,
     Permission.BOOKING_UPDATE,
     Permission.BOOKING_CANCEL,
@@ -49,6 +50,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     Permission.REPORT_EXPORT,
   ],
   [UserRole.DISPATCHER]: [
+    Permission.BOOKING_CREATE,
     Permission.BOOKING_READ,
     Permission.BOOKING_UPDATE,
     Permission.BOOKING_DISPATCH,

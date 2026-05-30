@@ -61,5 +61,11 @@ export async function emitToDriver(
   const pusher = getPusherServer();
   if (!pusher) return;
 
-  await pusher.trigger(driverChannel(driverId), event, payload);
+  await pusher.trigger(driverChannel(driverId), event, {
+    type: event,
+    payload,
+    driverId,
+    timestamp: new Date().toISOString(),
+    correlationId: randomUUID(),
+  });
 }

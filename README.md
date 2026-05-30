@@ -48,10 +48,12 @@ pnpm dev
 
 ## Seed accounts
 
-| Email | Password | Role |
-|-------|----------|------|
-| admin@phv-dev.local | ChangeMe123! | OPERATOR_ADMIN |
-| dispatcher@phv-dev.local | ChangeMe123! | DISPATCHER |
+| Email | Password | Role | App entry |
+|-------|----------|------|-----------|
+| admin@phv-dev.local | ChangeMe123! | OPERATOR_ADMIN | `/staff/login` → dashboard, dispatch, fleet, compliance, complaints |
+| dispatcher@phv-dev.local | ChangeMe123! | DISPATCHER | `/staff/login` → dispatch & fleet (no complaints UI) |
+| driver@phv-dev.local | ChangeMe123! | DRIVER | `/driver/login` → home, jobs, history, profile |
+| customer@phv-dev.local | ChangeMe123! | CUSTOMER | `/login` |
 
 ## Core API modules
 
@@ -62,7 +64,7 @@ pnpm dev
 - **complaints / safeguarding**
 - **audit-logs**, **payments**, **storage**
 - **admin/dashboard** — operator stats
-- **Pusher** — live dispatch events (optional)
+- **Pusher** — live dispatch events for operator dashboard and driver app (optional)
 
 ## Deployment
 

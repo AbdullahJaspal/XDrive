@@ -7,7 +7,7 @@ import type { CreateBookingInput } from '@uk-phv/validation';
 import { getBookingRetentionYears } from '../config';
 import { prisma } from '../db';
 import { AppError } from '../errors/app.error';
-import { emitToOperator } from '../realtime';
+import { emitToDriver, emitToOperator } from '../realtime';
 import { auditLogsService } from './audit-logs.service';
 
 function generateReference(): string {
@@ -136,12 +136,23 @@ export const bookingsService = {
 
   async listByOperator(
     operatorId: string,
-    options: { page: number; pageSize: number; status?: BookingStatus },
+    options: {
+      page: number;
+      pageSize: number;
+      status?: BookingStatus;
+      statuses?: BookingStatus[];
+    },
   ) {
     const skip = (options.page - 1) * options.pageSize;
+    const statusFilter =
+      options.statuses && options.statuses.length > 0
+        ? { in: options.statuses }
+        : options.status
+          ? options.status
+          : undefined;
     const where = {
       operatorId,
-      ...(options.status ? { status: options.status } : {}),
+      ...(statusFilter ? { status: statusFilter } : {}),
     };
     const [items, total] = await Promise.all([
       prisma.booking.findMany({
@@ -200,11 +211,19 @@ export const bookingsService = {
       changes: { from: booking.status, to: toStatus },
     });
 
+    const summary = toSummary(updated);
+
     await emitToOperator(booking.operatorId, 'booking:status_changed', {
       bookingId,
       status: toStatus,
     });
 
-    return toSummary(updated);
+    if (booking.driverId) {
+      const event =
+        toStatus === 'CANCELLED' ? 'booking:cancelled' : 'booking:status_changed';
+      await emitToDriver(booking.driverId, event, summary);
+    }
+
+    return summary;
   },
 };

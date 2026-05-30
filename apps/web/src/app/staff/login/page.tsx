@@ -13,7 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { BRAND } from '@/lib/brand';
-import { getPostLoginPath, isStaffRole } from '@/lib/auth/roles';
+import { getPostLoginPath, isDriverRole, isOperatorStaffRole } from '@/lib/auth/roles';
 import { setTokens } from '@/lib/auth/session-client';
 import { apiRequest } from '@/lib/api/client';
 import type { AuthTokens } from '@uk-phv/shared-types';
@@ -45,7 +45,12 @@ export default function StaffLoginPage() {
         const profile = await apiRequest<{ role: string }>('/users/me', {
           token: tokens.accessToken,
         });
-        if (!isStaffRole(profile.role)) {
+        if (isDriverRole(profile.role)) {
+          setError('Drivers must use the driver login at /driver/login.');
+          setLoading(false);
+          return;
+        }
+        if (!isOperatorStaffRole(profile.role)) {
           setError('This login is for operator staff only. Passengers can sign in on the main site.');
           setLoading(false);
           return;

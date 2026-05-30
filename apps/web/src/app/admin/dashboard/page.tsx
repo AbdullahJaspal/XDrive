@@ -4,16 +4,17 @@ import {
   AlertTriangle,
   Car,
   ClipboardList,
-  Loader2,
   Radio,
   RefreshCw,
   UserCircle,
 } from 'lucide-react';
+import { AdminDashboardSkeleton } from '@/components/skeletons';
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 
 import { StatCard } from '@/components/dashboard/stat-card';
 import { AdminShell } from '@/components/layout/admin-shell';
+import { PageContainer } from '@/components/layout/page-container';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -32,9 +33,10 @@ interface DashboardStats {
 const POLL_MS = 30_000;
 
 const quickActions = [
-  { href: '#', label: 'Dispatch board', description: 'Coming soon' },
-  { href: '#', label: 'Fleet', description: 'Drivers & vehicles' },
-  { href: '#', label: 'Compliance', description: 'Licences & documents' },
+  { href: '/admin/dispatch', label: 'Dispatch board', description: 'Assign drivers to bookings' },
+  { href: '/admin/fleet', label: 'Fleet', description: 'Drivers & vehicles' },
+  { href: '/admin/compliance', label: 'Compliance', description: 'Licences & documents' },
+  { href: '/admin/complaints', label: 'Complaints', description: 'Open cases & resolutions' },
 ] as const;
 
 export default function AdminDashboardPage() {
@@ -97,10 +99,7 @@ export default function AdminDashboardPage() {
   if (loading) {
     return (
       <AdminShell>
-        <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4">
-          <Loader2 className="h-10 w-10 animate-spin text-primary" />
-          <p className="text-muted-foreground">Loading operator dashboard…</p>
-        </div>
+        <AdminDashboardSkeleton />
       </AdminShell>
     );
   }
@@ -108,7 +107,7 @@ export default function AdminDashboardPage() {
   if (error) {
     return (
       <AdminShell>
-        <div className="mx-auto flex min-h-[50vh] max-w-md flex-col items-center justify-center gap-6 px-4 text-center">
+        <PageContainer className="flex min-h-[50vh] flex-col items-center justify-center gap-6 text-center">
           <div className="flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10 text-destructive">
             <AlertTriangle className="h-7 w-7" />
           </div>
@@ -118,14 +117,14 @@ export default function AdminDashboardPage() {
           <Button asChild size="lg">
             <Link href="/staff/login">Operator sign in</Link>
           </Button>
-        </div>
+        </PageContainer>
       </AdminShell>
     );
   }
 
   return (
     <AdminShell>
-      <div className="mx-auto max-w-6xl space-y-8 px-4 py-8 sm:px-6 sm:py-10">
+      <PageContainer className="space-y-8 py-8 sm:py-10">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -216,7 +215,7 @@ export default function AdminDashboardPage() {
               <CardTitle>Quick actions</CardTitle>
               <CardDescription>Common operator workflows</CardDescription>
             </CardHeader>
-            <CardContent className="grid gap-3 sm:grid-cols-3">
+            <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {quickActions.map((action) => (
                 <Link
                   key={action.label}
@@ -240,7 +239,7 @@ export default function AdminDashboardPage() {
             </CardContent>
           </Card>
         </div>
-      </div>
+      </PageContainer>
     </AdminShell>
   );
 }

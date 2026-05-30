@@ -2,15 +2,27 @@
 
 import { ArrowLeft, ArrowRight, Check, Loader2, MapPin } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 
+import { BookingField } from '@/components/booking/booking-field';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { DEFAULT_COORDS } from '@/lib/booking/defaults';
+import { useBookingFieldErrors } from '@/hooks/use-booking-field-errors';
+import { ApiClientError, apiRequest } from '@/lib/api/client';
 import { getAccessToken } from '@/lib/auth/session-client';
-import { apiRequest } from '@/lib/api/client';
+import type { BookingFormFields } from '@/lib/booking/payload';
+import type { CreateBookingInput } from '@uk-phv/validation';
+import {
+  apiDetailsToFieldErrors,
+  type BookingFieldErrors,
+  DETAILS_FIELD_KEYS,
+  JOURNEY_FIELD_KEYS,
+  validateDetailsStep,
+  validateFullBooking,
+  validateJourneyStep,
+} from '@/lib/booking/validation';
 import { cn } from '@/lib/utils';
 import type { BookingSummary } from '@uk-phv/shared-types';
 
@@ -32,11 +44,24 @@ interface BookingWizardProps {
   initial?: BookingWizardInitial;
 }
 
+function stepForFieldErrors(errors: BookingFieldErrors): number {
+  if (JOURNEY_FIELD_KEYS.some((key) => errors[key])) return 0;
+  if (errors.scheduledAt) return 1;
+  if (DETAILS_FIELD_KEYS.some((key) => errors[key])) return 2;
+  return 3;
+}
+
 export function BookingWizard({ initial }: BookingWizardProps) {
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+  const {
+    fieldErrors,
+    clearFieldError,
+    clearAllFieldErrors,
+    applyFieldErrors,
+  } = useBookingFieldErrors();
 
   const [pickupAddress, setPickupAddress] = useState(initial?.pickup ?? '');
   const [pickupPostcode, setPickupPostcode] = useState('');
@@ -47,28 +72,77 @@ export function BookingWizard({ initial }: BookingWizardProps) {
   const [passengerPhone, setPassengerPhone] = useState('');
   const [passengerEmail, setPassengerEmail] = useState('');
   const [notes, setNotes] = useState('');
-  const [accessibility, setAccessibility] = useState<string[]>([]);
+  const [accessibility, setAccessibility] = useState<
+    CreateBookingInput['accessibilityRequirements']
+  >([]);
 
   const progress = ((step + 1) / STEPS.length) * 100;
 
-  const canNext = useMemo(() => {
-    if (step === 0) {
-      return pickupAddress.trim() && pickupPostcode.trim() && dropoffAddress.trim() && dropoffPostcode.trim();
-    }
-    if (step === 2) {
-      return passengerName.trim() && passengerPhone.trim();
-    }
-    return true;
-  }, [step, pickupAddress, pickupPostcode, dropoffAddress, dropoffPostcode, passengerName, passengerPhone]);
+  const formFields: BookingFormFields = {
+    pickupAddress,
+    pickupPostcode,
+    dropoffAddress,
+    dropoffPostcode,
+    scheduledAt,
+    passengerName,
+    passengerPhone,
+    passengerEmail,
+    notes,
+    accessibility,
+  };
 
-  function toggleAccessibility(value: string) {
+  function focusFirstInvalidField() {
+    requestAnimationFrame(() => {
+      const el = document.querySelector<HTMLElement>(
+        '[data-invalid="true"] input, [data-invalid="true"] textarea',
+      );
+      el?.focus();
+    });
+  }
+
+  function toggleAccessibility(value: CreateBookingInput['accessibilityRequirements'][number]) {
     setAccessibility((prev) =>
       prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value],
     );
   }
 
+  function handleContinue() {
+    setFormError(null);
+
+    if (step === 0) {
+      const result = validateJourneyStep(formFields);
+      if (!result.ok) {
+        applyFieldErrors(result.errors);
+        focusFirstInvalidField();
+        return;
+      }
+      clearAllFieldErrors();
+    }
+
+    if (step === 2) {
+      const result = validateDetailsStep(formFields);
+      if (!result.ok) {
+        applyFieldErrors(result.errors);
+        focusFirstInvalidField();
+        return;
+      }
+      clearAllFieldErrors();
+    }
+
+    setStep((s) => s + 1);
+  }
+
   function submit() {
-    setError(null);
+    setFormError(null);
+    const result = validateFullBooking(formFields);
+    if (!result.ok) {
+      applyFieldErrors(result.errors);
+      setStep(stepForFieldErrors(result.errors));
+      focusFirstInvalidField();
+      return;
+    }
+
+    clearAllFieldErrors();
     setLoading(true);
     void (async () => {
       try {
@@ -76,29 +150,18 @@ export function BookingWizard({ initial }: BookingWizardProps) {
         const booking = await apiRequest<BookingSummary>('/public/bookings', {
           method: 'POST',
           token: token ?? undefined,
-          body: JSON.stringify({
-            pickup: {
-              ...DEFAULT_COORDS,
-              address: pickupAddress,
-              postcode: pickupPostcode.toUpperCase(),
-            },
-            dropoff: {
-              ...DEFAULT_COORDS,
-              address: dropoffAddress,
-              postcode: dropoffPostcode.toUpperCase(),
-            },
-            scheduledAt: scheduledAt ? new Date(scheduledAt).toISOString() : undefined,
-            passengerName,
-            passengerPhone,
-            passengerEmail: passengerEmail || undefined,
-            accessibilityRequirements: accessibility,
-            notes: notes || undefined,
-            source: 'WEB',
-          }),
+          body: JSON.stringify(result.data),
         });
         router.push(`/book/confirmation?ref=${encodeURIComponent(booking.reference)}`);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Could not submit booking');
+        if (err instanceof ApiClientError && err.details?.length) {
+          const errors = apiDetailsToFieldErrors(err.details);
+          applyFieldErrors(errors);
+          setStep(stepForFieldErrors(errors));
+          focusFirstInvalidField();
+          return;
+        }
+        setFormError(err instanceof Error ? err.message : 'Could not submit booking');
       } finally {
         setLoading(false);
       }
@@ -133,65 +196,77 @@ export function BookingWizard({ initial }: BookingWizardProps) {
             <p className="mt-2 text-muted-foreground">Pickup and destination details</p>
           </div>
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="pickup-address" className="label-caps">
-                Pickup address
-              </Label>
+            <BookingField
+              id="pickup-address"
+              label="Pickup address"
+              labelClassName="label-caps"
+              error={fieldErrors.pickupAddress}
+            >
               <Input
-                id="pickup-address"
                 value={pickupAddress}
                 onChange={(e) => {
                   setPickupAddress(e.target.value);
+                  clearFieldError('pickupAddress');
                 }}
                 placeholder="Street address"
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="pickup-postcode" className="label-caps">
-                Pickup postcode
-              </Label>
+            </BookingField>
+            <BookingField
+              id="pickup-postcode"
+              label="Pickup postcode"
+              labelClassName="label-caps"
+              error={fieldErrors.pickupPostcode}
+              hint="UK postcode format, e.g. WV1 1AA"
+            >
               <Input
-                id="pickup-postcode"
                 value={pickupPostcode}
                 onChange={(e) => {
                   setPickupPostcode(e.target.value);
+                  clearFieldError('pickupPostcode');
                 }}
                 placeholder="WV1 1AA"
                 className="uppercase"
+                autoComplete="postal-code"
               />
-            </div>
+            </BookingField>
             <div className="my-6 flex items-center gap-3 text-muted-foreground/50">
               <div className="h-px flex-1 bg-border" />
               <MapPin className="h-4 w-4 text-luxury" />
               <div className="h-px flex-1 bg-border" />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="dropoff-address" className="label-caps">
-                Drop-off address
-              </Label>
+            <BookingField
+              id="dropoff-address"
+              label="Drop-off address"
+              labelClassName="label-caps"
+              error={fieldErrors.dropoffAddress}
+            >
               <Input
-                id="dropoff-address"
                 value={dropoffAddress}
                 onChange={(e) => {
                   setDropoffAddress(e.target.value);
+                  clearFieldError('dropoffAddress');
                 }}
                 placeholder="Destination"
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="dropoff-postcode" className="label-caps">
-                Drop-off postcode
-              </Label>
+            </BookingField>
+            <BookingField
+              id="dropoff-postcode"
+              label="Drop-off postcode"
+              labelClassName="label-caps"
+              error={fieldErrors.dropoffPostcode}
+              hint="UK postcode format, e.g. B26 3QJ"
+            >
               <Input
-                id="dropoff-postcode"
                 value={dropoffPostcode}
                 onChange={(e) => {
                   setDropoffPostcode(e.target.value);
+                  clearFieldError('dropoffPostcode');
                 }}
                 placeholder="B26 3QJ"
                 className="uppercase"
+                autoComplete="postal-code"
               />
-            </div>
+            </BookingField>
           </div>
           <div className="surface-elevated flex aspect-[2/1] items-center justify-center rounded-sm bg-muted/30">
             <p className="text-sm text-muted-foreground">Map preview — coming soon</p>
@@ -205,21 +280,23 @@ export function BookingWizard({ initial }: BookingWizardProps) {
             <h2 className="font-display text-3xl font-medium">When do you need the car?</h2>
             <p className="mt-2 text-muted-foreground">Leave blank for as soon as possible</p>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="scheduled-at" className="label-caps">
-              Date &amp; time
-            </Label>
+          <BookingField
+            id="scheduled-at"
+            label="Date & time"
+            labelClassName="label-caps"
+            error={fieldErrors.scheduledAt}
+          >
             <Input
-              id="scheduled-at"
               type="datetime-local"
               value={scheduledAt}
               onChange={(e) => {
                 setScheduledAt(e.target.value);
+                clearFieldError('scheduledAt');
               }}
               min={new Date().toISOString().slice(0, 16)}
               className="max-w-sm"
             />
-          </div>
+          </BookingField>
         </div>
       ) : null}
 
@@ -230,45 +307,52 @@ export function BookingWizard({ initial }: BookingWizardProps) {
             <p className="mt-2 text-muted-foreground">So we can confirm your reservation</p>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="passenger-name" className="label-caps">
-                Full name
-              </Label>
+            <BookingField
+              id="passenger-name"
+              label="Full name"
+              labelClassName="label-caps"
+              className="sm:col-span-2"
+              error={fieldErrors.passengerName}
+            >
               <Input
-                id="passenger-name"
                 value={passengerName}
                 onChange={(e) => {
                   setPassengerName(e.target.value);
+                  clearFieldError('passengerName');
                 }}
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="passenger-phone" className="label-caps">
-                Mobile
-              </Label>
+            </BookingField>
+            <BookingField
+              id="passenger-phone"
+              label="Mobile"
+              labelClassName="label-caps"
+              error={fieldErrors.passengerPhone}
+            >
               <Input
-                id="passenger-phone"
                 type="tel"
                 value={passengerPhone}
                 onChange={(e) => {
                   setPassengerPhone(e.target.value);
+                  clearFieldError('passengerPhone');
                 }}
                 placeholder="07XXX XXXXXX"
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="passenger-email" className="label-caps">
-                Email (optional)
-              </Label>
+            </BookingField>
+            <BookingField
+              id="passenger-email"
+              label="Email (optional)"
+              labelClassName="label-caps"
+              error={fieldErrors.passengerEmail}
+            >
               <Input
-                id="passenger-email"
                 type="email"
                 value={passengerEmail}
                 onChange={(e) => {
                   setPassengerEmail(e.target.value);
+                  clearFieldError('passengerEmail');
                 }}
               />
-            </div>
+            </BookingField>
           </div>
           <div className="space-y-3">
             <Label className="label-caps">Accessibility</Label>
@@ -292,19 +376,21 @@ export function BookingWizard({ initial }: BookingWizardProps) {
               ))}
             </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="notes" className="label-caps">
-              Notes (optional)
-            </Label>
+          <BookingField
+            id="notes"
+            label="Notes (optional)"
+            labelClassName="label-caps"
+            error={fieldErrors.notes}
+          >
             <Textarea
-              id="notes"
               value={notes}
               onChange={(e) => {
                 setNotes(e.target.value);
+                clearFieldError('notes');
               }}
               placeholder="Flight number, meet point, luggage…"
             />
-          </div>
+          </BookingField>
         </div>
       ) : null}
 
@@ -345,12 +431,12 @@ export function BookingWizard({ initial }: BookingWizardProps) {
         </div>
       ) : null}
 
-      {error ? (
+      {formError ? (
         <div
           className="rounded-sm border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
           role="alert"
         >
-          {error}
+          {formError}
         </div>
       ) : null}
 
@@ -359,6 +445,7 @@ export function BookingWizard({ initial }: BookingWizardProps) {
           type="button"
           variant="ghost"
           onClick={() => {
+            setFormError(null);
             setStep((s) => Math.max(0, s - 1));
           }}
           disabled={step === 0 || loading}
@@ -368,26 +455,12 @@ export function BookingWizard({ initial }: BookingWizardProps) {
           Back
         </Button>
         {step < STEPS.length - 1 ? (
-          <Button
-            type="button"
-            variant="accent"
-            size="lg"
-            disabled={!canNext}
-            onClick={() => {
-              setStep((s) => s + 1);
-            }}
-          >
+          <Button type="button" variant="accent" size="lg" disabled={loading} onClick={handleContinue}>
             Continue
             <ArrowRight className="h-4 w-4" />
           </Button>
         ) : (
-          <Button
-            type="button"
-            variant="accent"
-            size="lg"
-            disabled={loading}
-            onClick={submit}
-          >
+          <Button type="button" variant="accent" size="lg" disabled={loading} onClick={submit}>
             {loading ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />

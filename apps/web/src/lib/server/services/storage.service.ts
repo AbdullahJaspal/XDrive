@@ -21,6 +21,7 @@ export const storageService = {
     sizeBytes: number;
     buffer: Buffer;
     uploadedBy?: string;
+    complianceDocumentId?: string;
   }) {
     if (!ALLOWED_MIME.has(input.mimeType)) {
       throw AppError.validation(`MIME type not allowed: ${input.mimeType}`);
@@ -45,6 +46,22 @@ export const storageService = {
         sizeBytes: input.sizeBytes,
         storageKey,
         uploadedBy: input.uploadedBy,
+        complianceDocumentId: input.complianceDocumentId,
+      },
+    });
+  },
+
+  listForDriverLicence(driverId: string) {
+    return prisma.storedFile.findMany({
+      where: { entityType: 'DRIVER_LICENCE', entityId: driverId },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        originalName: true,
+        mimeType: true,
+        sizeBytes: true,
+        createdAt: true,
+        complianceDocumentId: true,
       },
     });
   },

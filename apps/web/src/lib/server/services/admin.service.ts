@@ -10,7 +10,9 @@ export const adminService = {
             status: { in: ['DISPATCHED', 'DRIVER_EN_ROUTE', 'IN_PROGRESS'] },
           },
         }),
-        prisma.driver.count({ where: { operatorId, status: 'ACTIVE' } }),
+        prisma.driver.count({
+          where: { operatorId, status: { in: ['ON_DUTY', 'ACTIVE', 'ON_TRIP'] } },
+        }),
         prisma.complianceDocument.count({
           where: {
             status: 'EXPIRING_SOON',

@@ -11,13 +11,17 @@ import {
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
+import { BookingField } from '@/components/booking/booking-field';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { DEFAULT_COORDS } from '@/lib/booking/defaults';
+import { useBookingFieldErrors } from '@/hooks/use-booking-field-errors';
+import { ApiClientError, apiRequest } from '@/lib/api/client';
 import { getAccessToken } from '@/lib/auth/session-client';
-import { apiRequest } from '@/lib/api/client';
+import type { BookingFormFields } from '@/lib/booking/payload';
+import type { CreateBookingInput } from '@uk-phv/validation';
+import { apiDetailsToFieldErrors, validateFullBooking } from '@/lib/booking/validation';
 import type { BookingSummary } from '@uk-phv/shared-types';
 
 const ACCESSIBILITY_OPTIONS = [
@@ -36,7 +40,13 @@ interface BookingFormProps {
 export function BookingForm({ compact = false, onSuccess }: BookingFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+  const {
+    fieldErrors,
+    clearFieldError,
+    clearAllFieldErrors,
+    applyFieldErrors,
+  } = useBookingFieldErrors();
 
   const [pickupAddress, setPickupAddress] = useState('');
   const [pickupPostcode, setPickupPostcode] = useState('');
@@ -47,9 +57,11 @@ export function BookingForm({ compact = false, onSuccess }: BookingFormProps) {
   const [passengerPhone, setPassengerPhone] = useState('');
   const [passengerEmail, setPassengerEmail] = useState('');
   const [notes, setNotes] = useState('');
-  const [accessibility, setAccessibility] = useState<string[]>([]);
+  const [accessibility, setAccessibility] = useState<
+    CreateBookingInput['accessibilityRequirements']
+  >([]);
 
-  function toggleAccessibility(value: string) {
+  function toggleAccessibility(value: CreateBookingInput['accessibilityRequirements'][number]) {
     setAccessibility((prev) =>
       prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value],
     );
@@ -57,7 +69,30 @@ export function BookingForm({ compact = false, onSuccess }: BookingFormProps) {
 
   function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault();
-    setError(null);
+    setFormError(null);
+
+    const formFields: BookingFormFields = {
+      pickupAddress,
+      pickupPostcode,
+      dropoffAddress,
+      dropoffPostcode,
+      scheduledAt,
+      passengerName,
+      passengerPhone,
+      passengerEmail,
+      notes,
+      accessibility,
+    };
+
+    const result = validateFullBooking(formFields);
+    if (!result.ok) {
+      applyFieldErrors(result.errors);
+      const firstInvalid = document.querySelector<HTMLElement>('[data-invalid="true"] input, [data-invalid="true"] textarea');
+      firstInvalid?.focus();
+      return;
+    }
+
+    clearAllFieldErrors();
     setLoading(true);
 
     void (async () => {
@@ -66,30 +101,20 @@ export function BookingForm({ compact = false, onSuccess }: BookingFormProps) {
         const booking = await apiRequest<BookingSummary>('/public/bookings', {
           method: 'POST',
           token: token ?? undefined,
-          body: JSON.stringify({
-            pickup: {
-              ...DEFAULT_COORDS,
-              address: pickupAddress,
-              postcode: pickupPostcode.toUpperCase(),
-            },
-            dropoff: {
-              ...DEFAULT_COORDS,
-              address: dropoffAddress,
-              postcode: dropoffPostcode.toUpperCase(),
-            },
-            scheduledAt: scheduledAt ? new Date(scheduledAt).toISOString() : undefined,
-            passengerName,
-            passengerPhone,
-            passengerEmail: passengerEmail || undefined,
-            accessibilityRequirements: accessibility,
-            notes: notes || undefined,
-            source: 'WEB',
-          }),
+          body: JSON.stringify(result.data),
         });
         onSuccess?.(booking);
         router.push(`/book/confirmation?ref=${encodeURIComponent(booking.reference)}`);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Could not submit booking');
+        if (err instanceof ApiClientError && err.details?.length) {
+          applyFieldErrors(apiDetailsToFieldErrors(err.details));
+          const firstInvalid = document.querySelector<HTMLElement>(
+            '[data-invalid="true"] input, [data-invalid="true"] textarea',
+          );
+          firstInvalid?.focus();
+          return;
+        }
+        setFormError(err instanceof Error ? err.message : 'Could not submit booking');
       } finally {
         setLoading(false);
       }
@@ -97,122 +122,156 @@ export function BookingForm({ compact = false, onSuccess }: BookingFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-6" noValidate>
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="pickup-address" className="flex items-center gap-2">
-            <MapPin className="h-4 w-4 text-primary" aria-hidden />
-            Pickup address
-          </Label>
+        <BookingField
+          id="pickup-address"
+          className="sm:col-span-2"
+          label={
+            <span className="flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-primary" aria-hidden />
+              Pickup address
+            </span>
+          }
+          error={fieldErrors.pickupAddress}
+        >
           <Input
-            id="pickup-address"
-            required
             value={pickupAddress}
             onChange={(e) => {
               setPickupAddress(e.target.value);
+              clearFieldError('pickupAddress');
             }}
             placeholder="e.g. 12 High Street"
           />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="pickup-postcode">Pickup postcode</Label>
+        </BookingField>
+        <BookingField
+          id="pickup-postcode"
+          label="Pickup postcode"
+          error={fieldErrors.pickupPostcode}
+          hint="UK postcode, e.g. WV1 1AA"
+        >
           <Input
-            id="pickup-postcode"
-            required
             value={pickupPostcode}
             onChange={(e) => {
               setPickupPostcode(e.target.value);
+              clearFieldError('pickupPostcode');
             }}
             placeholder="WV1 1AA"
             className="uppercase"
+            autoComplete="postal-code"
           />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="scheduled-at" className="flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-muted-foreground" aria-hidden />
-            When (optional)
-          </Label>
+        </BookingField>
+        <BookingField
+          id="scheduled-at"
+          label={
+            <span className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-muted-foreground" aria-hidden />
+              When (optional)
+            </span>
+          }
+          error={fieldErrors.scheduledAt}
+        >
           <Input
-            id="scheduled-at"
             type="datetime-local"
             value={scheduledAt}
             onChange={(e) => {
               setScheduledAt(e.target.value);
+              clearFieldError('scheduledAt');
             }}
             min={new Date().toISOString().slice(0, 16)}
           />
-        </div>
-        <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="dropoff-address">Drop-off address</Label>
+        </BookingField>
+        <BookingField
+          id="dropoff-address"
+          className="sm:col-span-2"
+          label="Drop-off address"
+          error={fieldErrors.dropoffAddress}
+        >
           <Input
-            id="dropoff-address"
-            required
             value={dropoffAddress}
             onChange={(e) => {
               setDropoffAddress(e.target.value);
+              clearFieldError('dropoffAddress');
             }}
             placeholder="e.g. Birmingham Airport"
           />
-        </div>
-        <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="dropoff-postcode">Drop-off postcode</Label>
+        </BookingField>
+        <BookingField
+          id="dropoff-postcode"
+          className="sm:col-span-2"
+          label="Drop-off postcode"
+          error={fieldErrors.dropoffPostcode}
+          hint="UK postcode, e.g. B26 3QJ"
+        >
           <Input
-            id="dropoff-postcode"
-            required
             value={dropoffPostcode}
             onChange={(e) => {
               setDropoffPostcode(e.target.value);
+              clearFieldError('dropoffPostcode');
             }}
             placeholder="B26 3QJ"
             className="uppercase"
+            autoComplete="postal-code"
           />
-        </div>
+        </BookingField>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="passenger-name" className="flex items-center gap-2">
-            <User className="h-4 w-4 text-muted-foreground" aria-hidden />
-            Your name
-          </Label>
+        <BookingField
+          id="passenger-name"
+          label={
+            <span className="flex items-center gap-2">
+              <User className="h-4 w-4 text-muted-foreground" aria-hidden />
+              Your name
+            </span>
+          }
+          error={fieldErrors.passengerName}
+        >
           <Input
-            id="passenger-name"
-            required
             value={passengerName}
             onChange={(e) => {
               setPassengerName(e.target.value);
+              clearFieldError('passengerName');
             }}
           />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="passenger-phone" className="flex items-center gap-2">
-            <Phone className="h-4 w-4 text-muted-foreground" aria-hidden />
-            Mobile number
-          </Label>
+        </BookingField>
+        <BookingField
+          id="passenger-phone"
+          label={
+            <span className="flex items-center gap-2">
+              <Phone className="h-4 w-4 text-muted-foreground" aria-hidden />
+              Mobile number
+            </span>
+          }
+          error={fieldErrors.passengerPhone}
+        >
           <Input
-            id="passenger-phone"
-            required
             type="tel"
             value={passengerPhone}
             onChange={(e) => {
               setPassengerPhone(e.target.value);
+              clearFieldError('passengerPhone');
             }}
             placeholder="07XXX XXXXXX"
           />
-        </div>
+        </BookingField>
         {!compact ? (
-          <div className="space-y-2 sm:col-span-2">
-            <Label htmlFor="passenger-email">Email (optional)</Label>
+          <BookingField
+            id="passenger-email"
+            className="sm:col-span-2"
+            label="Email (optional)"
+            error={fieldErrors.passengerEmail}
+          >
             <Input
-              id="passenger-email"
               type="email"
               value={passengerEmail}
               onChange={(e) => {
                 setPassengerEmail(e.target.value);
+                clearFieldError('passengerEmail');
               }}
               placeholder="for booking updates"
             />
-          </div>
+          </BookingField>
         ) : null}
       </div>
 
@@ -242,26 +301,25 @@ export function BookingForm({ compact = false, onSuccess }: BookingFormProps) {
               ))}
             </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="notes">Notes for your driver (optional)</Label>
+          <BookingField id="notes" label="Notes for your driver (optional)" error={fieldErrors.notes}>
             <Textarea
-              id="notes"
               value={notes}
               onChange={(e) => {
                 setNotes(e.target.value);
+                clearFieldError('notes');
               }}
               placeholder="Flight number, meet point, luggage…"
             />
-          </div>
+          </BookingField>
         </>
       ) : null}
 
-      {error ? (
+      {formError ? (
         <div
           className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
           role="alert"
         >
-          {error}
+          {formError}
         </div>
       ) : null}
 

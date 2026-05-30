@@ -54,4 +54,5 @@ See [DEPLOY.md](./DEPLOY.md) for Vercel + Neon + Pusher.
 |-------|-----|
 | Prisma client missing | `pnpm db:generate` |
 | JWT error on start | Check secret length ≥ 32 in `apps/web/.env` |
-| No live updates | Add Pusher env vars or rely on 30s dashboard polling |
+| No live updates | Add Pusher env vars in `apps/web/.env` (operator dashboard + `/driver`); otherwise 30s polling |
+| `Can't reach database server` / pool timeout (Neon) | Wake project in [Neon console](https://console.neon.tech); use **pooled** URL with `pgbouncer=true` (auto-added by the app); restart `pnpm dev`; retry |

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
+import { pageContainerClass } from '@/components/layout/page-container';
 import { BrandLogo } from '@/components/layout/brand-logo';
 import { Button } from '@/components/ui/button';
 import { BRAND } from '@/lib/brand';
@@ -92,18 +93,13 @@ export function PublicHeader({ hero = false }: PublicHeaderProps) {
             : 'border-b border-border/80 bg-card/95 shadow-sm shadow-black/5 backdrop-blur-lg',
         )}
       >
-        <div className="mx-auto flex h-[4.5rem] max-w-6xl items-center justify-between gap-6 px-4 sm:h-20 sm:px-6">
-          <div className="flex min-w-0 items-center gap-3">
-            <BrandLogo responsive onDark={onHero} />
-            {onHero ? (
-              <Link
-                href="/"
-                className="hidden font-display text-xl font-medium tracking-tight text-white sm:block"
-              >
-                {BRAND.name}
-              </Link>
-            ) : null}
-          </div>
+        <div
+          className={cn(
+            'flex h-[4.5rem] items-center justify-between gap-6 sm:h-20',
+            pageContainerClass,
+          )}
+        >
+          <BrandLogo responsive onDark={onHero} />
 
           <nav className="hidden items-center gap-8 md:flex" aria-label="Main">
             {visibleLinks.map((item) => (
@@ -207,7 +203,7 @@ export function PublicHeader({ hero = false }: PublicHeaderProps) {
 export function PublicFooter() {
   return (
     <footer className="border-t border-border bg-primary text-primary-foreground">
-      <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+      <div className={cn(pageContainerClass, 'py-12')}>
         <div className="flex flex-col gap-8 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <p className="font-display text-2xl font-medium">{BRAND.name}</p>

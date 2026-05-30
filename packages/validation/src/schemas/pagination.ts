@@ -8,3 +8,24 @@ export const paginationQuerySchema = z.object({
 });
 
 export type PaginationQueryInput = z.infer<typeof paginationQuerySchema>;
+
+const bookingStatusFilter = z.enum([
+  'DRAFT',
+  'REQUESTED',
+  'CONFIRMED',
+  'DISPATCHED',
+  'DRIVER_EN_ROUTE',
+  'ARRIVED',
+  'IN_PROGRESS',
+  'COMPLETED',
+  'CANCELLED',
+  'NO_SHOW',
+]);
+
+export const operatorBookingsQuerySchema = paginationQuerySchema.extend({
+  status: bookingStatusFilter.optional(),
+  /** Comma-separated statuses, e.g. REQUESTED,CONFIRMED */
+  statuses: z.string().max(200).optional(),
+});
+
+export type OperatorBookingsQueryInput = z.infer<typeof operatorBookingsQuerySchema>;
