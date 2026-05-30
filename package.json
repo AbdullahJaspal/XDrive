@@ -1,0 +1,40 @@
+{
+  "name": "uk-phv-platform",
+  "version": "0.1.0",
+  "private": true,
+  "description": "X Drive — UK Private Hire Vehicle operator dispatch platform",
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=20.11.0",
+    "pnpm": ">=9.0.0"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev --filter=@uk-phv/web",
+    "dev:web": "turbo run dev --filter=@uk-phv/web",
+    "lint": "turbo run lint",
+    "lint:fix": "turbo run lint:fix",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,mdc,yml,yaml}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,mdc,yml,yaml}\"",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:ci": "turbo run test:ci",
+    "db:generate": "pnpm --filter @uk-phv/web exec prisma generate",
+    "db:migrate": "pnpm --filter @uk-phv/web exec prisma migrate dev",
+    "db:migrate:deploy": "pnpm --filter @uk-phv/web exec prisma migrate deploy",
+    "db:studio": "pnpm --filter @uk-phv/web exec prisma studio",
+    "db:seed": "pnpm --filter @uk-phv/web exec prisma db seed",
+    "prepare": "husky",
+    "clean": "turbo run clean && rm -rf node_modules"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^19.6.1",
+    "@commitlint/config-conventional": "^19.6.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.3.0",
+    "prettier": "^3.4.2",
+    "prettier-plugin-tailwindcss": "^0.6.9",
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.2"
+  }
+}

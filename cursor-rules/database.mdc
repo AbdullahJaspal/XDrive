@@ -1,0 +1,44 @@
+---
+description: Prisma and PostgreSQL database rules
+globs:
+  - "apps/api/prisma/**"
+  - "apps/api/src/**/repositories/**"
+alwaysApply: false
+---
+
+# Database Rules
+
+## Schema Changes
+
+1. Edit `apps/api/prisma/schema.prisma`
+2. Run `pnpm db:migrate` with descriptive migration name
+3. Regenerate client: `pnpm db:generate`
+
+## Naming
+
+- Tables: snake_case plural (`bookings`, `audit_logs`)
+- Columns: snake_case with `@map`
+- UUID primary keys for all entities
+
+## Indexes
+
+Add indexes for: foreign keys, `operatorId + status + createdAt`, licence `expiryDate`, audit `resourceType + resourceId`.
+
+## Soft Delete
+
+Users use `deletedAt` — always filter `deletedAt: null` in repositories.
+
+## Retention
+
+- `bookings.retentionExpiresAt` set on create from operator `bookingRetentionYears`
+- Never hard-delete bookings within retention window — archive job only after expiry
+
+## Compliance Data
+
+- `compliance_documents` linked to driver OR vehicle, never both.
+- Licence status computed via scheduled job (EXPIRING_SOON = 30 days).
+
+## Queries
+
+- Paginate all list endpoints (max pageSize 100).
+- Use `select`/`include` intentionally — avoid over-fetching PII.

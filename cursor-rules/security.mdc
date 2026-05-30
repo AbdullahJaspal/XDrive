@@ -1,0 +1,43 @@
+---
+description: Security engineering rules
+globs:
+  - "**/*"
+alwaysApply: false
+---
+
+# Security Rules
+
+## Authentication
+
+- bcrypt cost factor 12 for passwords.
+- JWT access short-lived (15m); refresh tokens hashed (SHA-256) in DB.
+- Revoke refresh tokens on logout.
+
+## Authorization
+
+- RBAC via `UserRole` + `Permission` — check with `PermissionsGuard`.
+- Resource access must scope to `operatorId` from JWT.
+
+## API
+
+- Helmet enabled. CORS allowlist from env.
+- Rate limit auth endpoints (add middleware in hardening phase).
+- Validate all inputs with Zod.
+
+## Secrets
+
+- Never commit `.env`. Use Railway/Vercel secret managers in production.
+- Rotate JWT secrets on compromise.
+
+## Files
+
+- Allowlist MIME: jpeg, png, pdf. Max 10MB.
+- S3 SSE-KMS in production (AWS phase).
+
+## Socket.io
+
+- JWT auth on connection before room join (production requirement).
+
+## Dependencies
+
+- Run `pnpm audit` in CI. Patch critical within 48h.

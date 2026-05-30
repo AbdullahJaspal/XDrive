@@ -1,0 +1,22 @@
+{
+  "name": "@uk-phv/config-eslint",
+  "version": "0.1.0",
+  "private": true,
+  "license": "UNLICENSED",
+  "type": "module",
+  "exports": {
+    "./base": "./base.js",
+    "./nestjs": "./nestjs.js",
+    "./nextjs": "./nextjs.js"
+  },
+  "dependencies": {
+    "@eslint/js": "^9.17.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-import": "^2.31.0",
+    "typescript-eslint": "^8.18.2"
+  },
+  "peerDependencies": {
+    "eslint": "^9.0.0",
+    "typescript": "^5.0.0"
+  }
+}

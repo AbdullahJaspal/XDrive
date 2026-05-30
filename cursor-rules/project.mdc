@@ -1,0 +1,61 @@
+---
+description: Core monorepo standards for UK PHV Operator Platform
+globs:
+  - "**/*"
+alwaysApply: true
+---
+
+# UK PHV Platform — Project Rules
+
+## Architecture
+
+- Turborepo monorepo: `apps/api` (NestJS), `apps/web` (Next.js), `packages/*` (shared). Mobile (`apps/mobile`) is out of scope — not in the pnpm workspace.
+- Feature-based modules in API: `modules/<domain>/` with `*.module.ts`, `*.service.ts`, `*.controller.ts`, `repositories/`.
+- Never bypass repository layer for Prisma access from controllers.
+- Use `@uk-phv/shared-types` for cross-app contracts; `@uk-phv/validation` for Zod schemas.
+
+## API Response Standard
+
+All HTTP responses use the envelope from `@uk-phv/shared-types`:
+
+```typescript
+{ success: true, data: T, meta: { requestId, timestamp, version } }
+{ success: false, error: { code, message, details? }, meta }
+```
+
+Never return raw Prisma models from controllers — map to DTOs/summary types.
+
+## TypeScript
+
+- Strict mode always. No `any`. No `@ts-ignore` without linked issue.
+- Prefer `type` imports: `import type { X } from '...'`.
+- Use Zod for runtime validation at API boundaries; class-validator only where Nest pipes require it.
+
+## Git & Commits
+
+- Conventional commits: `feat(api):`, `fix(web):`, `chore(deps):`
+- Scopes: api, web, shared-types, validation, docker, docs, compliance
+
+## Compliance (Wolverhampton PHV)
+
+- Booking records must set `retentionExpiresAt` on create (minimum 2 years).
+- Dispatch must validate PHV driver + vehicle licences before assignment.
+- All dispatch, complaint, and safeguarding actions require audit log entries.
+- Never log PII, passwords, or tokens (see logger redaction).
+
+## File Organization
+
+```
+apps/api/src/modules/<feature>/
+  <feature>.module.ts
+  <feature>.controller.ts
+  <feature>.service.ts
+  repositories/<feature>.repository.ts
+  dto/ (optional)
+```
+
+## Do Not
+
+- Add placeholder `TODO` implementations in production paths — implement or create a tracked issue in roadmap.
+- Duplicate validation schemas — extend `@uk-phv/validation`.
+- Put business logic in controllers or gateways.

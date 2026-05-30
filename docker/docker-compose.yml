@@ -1,0 +1,54 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: phv-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: phv
+      POSTGRES_PASSWORD: phv_dev_password
+      POSTGRES_DB: phv_platform
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U phv -d phv_platform']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: phv-redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # Optional: local S3-compatible storage for file upload dev
+  minio:
+    image: minio/minio:latest
+    container_name: phv-minio
+    profiles: ['storage']
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: phv_minio
+      MINIO_ROOT_PASSWORD: phv_minio_dev_password
+    ports:
+      - '9000:9000'
+      - '9001:9001'
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:

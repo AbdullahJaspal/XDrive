@@ -1,0 +1,30 @@
+---
+description: Accessibility requirements for UK PHV platform
+globs:
+  - "apps/web/**"
+alwaysApply: false
+---
+
+# Accessibility Rules
+
+## Platform Requirements
+
+- Support `AccessibilityRequirement` enum on all booking flows.
+- WCAG 2.1 AA minimum for customer and operator web apps.
+
+## Web
+
+- Semantic HTML: `main`, `nav`, `section`, heading hierarchy.
+- Focus visible on all interactive elements.
+- Skip link to main content on dashboard layouts.
+- Form errors linked via `aria-describedby`.
+
+## Booking
+
+- Offer step-free / wheelchair options without burying in advanced settings.
+- Phone booking parity: operator can enter accessibility needs on behalf of customer.
+
+## Testing
+
+- axe-core in CI for web critical paths.
+- Manual test with VoiceOver (iOS) and TalkBack (Android) before release.

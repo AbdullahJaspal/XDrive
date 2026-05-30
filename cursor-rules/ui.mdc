@@ -1,0 +1,35 @@
+---
+description: UI component and design system rules
+globs:
+  - "apps/web/src/components/**"
+  - "apps/web/src/features/**"
+alwaysApply: false
+---
+
+# UI Rules
+
+## Design System
+
+- shadcn/ui primitives in `components/ui/` — extend, don't fork.
+- Use CVA for component variants (see `button.tsx`).
+- Semantic color tokens from CSS variables — no hardcoded hex in features.
+
+## Components
+
+- Presentational components: no data fetching.
+- Container/feature components: hooks + data, pass props down.
+- Reusable patterns: `DataTable`, `PageHeader`, `EmptyState`, `ErrorState`, `LoadingSkeleton`.
+
+## Forms
+
+- React Hook Form + Zod resolver (when added) — schemas from `@uk-phv/validation`.
+- Show inline field errors from API `details[]`.
+
+## Dispatch UI
+
+- Live board: booking status chips, driver assignment modal, compliance warnings.
+- Color-blind safe status indicators (icon + text, not color alone).
+
+## Responsive
+
+- Breakpoints: mobile dispatch read-only summary, full board at `lg+`.

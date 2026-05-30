@@ -1,0 +1,48 @@
+---
+description: NestJS backend engineering rules
+globs:
+  - "apps/api/**"
+alwaysApply: false
+---
+
+# Backend Rules (NestJS)
+
+## Patterns
+
+- **Repository**: Prisma queries only in `repositories/*.repository.ts`.
+- **Service**: Business logic, orchestration, audit logging, realtime emits.
+- **Controller**: HTTP routing, Zod parse, guards — no Prisma.
+
+## DTOs & Validation
+
+- Parse request bodies with Zod from `@uk-phv/validation` via `safeParse`; throw `AppError.validation()`.
+- Use `@RequirePermissions()` + `PermissionsGuard` on protected routes.
+- Use `JwtAuthGuard` for all authenticated endpoints.
+
+## Errors
+
+- Throw `AppError` with `ErrorCode` — never generic `Error` for client-facing failures.
+- Use `AppError.complianceBlocked()` when licence/vehicle checks fail.
+
+## Modules
+
+Register new features in `app.module.ts`. Export services only when other modules need them.
+
+## Audit
+
+Call `AuditLogsService.log()` for CREATE, UPDATE, DELETE, DISPATCH on regulated resources.
+
+## Realtime
+
+Emit via `RealtimeGateway.emitToOperator()` / `emitToDriver()` after state changes — not from controllers directly.
+
+## Integrations
+
+- Stripe: payments module only; verify webhooks with signature.
+- Twilio: notifications service only.
+- Google Maps: geocoding/routing service (future) — never expose server key to clients.
+
+## Testing
+
+- Unit test services with mocked repositories.
+- E2E tests for auth, booking create, dispatch assign compliance gate.

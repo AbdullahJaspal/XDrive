@@ -1,0 +1,38 @@
+---
+description: UK PHV Wolverhampton operator compliance rules
+globs:
+  - "apps/api/src/modules/**"
+  - "docs/compliance/**"
+alwaysApply: false
+---
+
+# Compliance Rules (Wolverhampton PHV Operator)
+
+## Booking Records
+
+- Store: pickup/dropoff, times, passenger contact, vehicle, driver, fare, status history.
+- `booking_status_history` append-only — never mutate past rows.
+- `dispatch_logs` for every assignment/reassignment.
+
+## Licences
+
+- Track PHV driver licence, PHV vehicle licence, DVLA driving licence.
+- Block dispatch if licence expired or missing (`COMPLIANCE_BLOCKED` error).
+- Alert when `EXPIRING_SOON` (30 days).
+
+## Complaints & Safeguarding
+
+- Unique references: `CMP-*`, `SG-*`.
+- Safeguarding HIGH/CRITICAL triggers immediate audit log + operator notification.
+- Retain complaint/safeguarding records per operator retention policy.
+
+## Data Protection (UK GDPR)
+
+- Lawful basis: contract + legal obligation for licensing records.
+- Support data export and erasure requests (anonymize bookings past retention only).
+- Encrypt data at rest (RDS) and in transit (TLS).
+
+## Reporting
+
+- Admin can export audit logs and booking registers for council inspections.
+- Reports must include operator licence number in header metadata.

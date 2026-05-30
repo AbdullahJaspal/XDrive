@@ -1,0 +1,39 @@
+---
+description: Socket.io realtime dispatch rules
+globs:
+  - "apps/api/src/realtime/**"
+  - "apps/web/src/lib/realtime/**"
+alwaysApply: false
+---
+
+# Realtime / Socket Rules
+
+## Namespace
+
+- Dispatch namespace: `/dispatch` on API server.
+- Event names align with `DispatchEventType` in `@uk-phv/shared-types`.
+
+## Rooms
+
+- `operator:{operatorId}` — dashboard, dispatchers
+- `driver:{driverId}` — driver clients (future; web dispatch is primary)
+- `dispatcher:{operatorId}` — dispatch-only staff
+
+## Security (production)
+
+- Authenticate socket connections with JWT before `join:*` handlers.
+- Validate `operatorId`/`driverId` matches token claims.
+
+## Location Updates
+
+- Driver location: emit `driver:location`, cache in Redis (TTL 300s).
+- Throttle client updates to max 1/second.
+
+## Client
+
+- Web: `getDispatchSocket()` + `joinOperatorRoom()`
+
+## Server
+
+- State changes must persist to DB before emitting events.
+- Include `correlationId` on all outbound payloads.

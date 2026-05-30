@@ -1,0 +1,50 @@
+---
+description: Next.js App Router frontend rules
+globs:
+  - "apps/web/**"
+alwaysApply: false
+---
+
+# Frontend Rules (Next.js)
+
+## Structure
+
+```
+apps/web/src/
+  app/           # Routes (App Router)
+  features/      # Domain UI (bookings, dispatch, compliance)
+  components/    # Shared UI (ui/, layout/, forms/)
+  lib/           # api/, realtime/, auth/, utils
+```
+
+## Data Fetching
+
+- Use `apiRequest<T>()` from `@/lib/api/client` — handles API envelope.
+- Server Components for initial data where possible; client components for realtime/interaction.
+- Store tokens in httpOnly cookies (production) — localStorage only for dev foundation.
+
+## State
+
+- Loading, error, and empty states required on every data view.
+- Use `role="status"` for loading, `role="alert"` for errors.
+
+## Styling
+
+- Tailwind + shadcn/ui components in `@/components/ui`.
+- Use `cn()` for class merging.
+- Mobile-first responsive layouts.
+
+## Accessibility
+
+- All forms: associated `<label>`, `aria-invalid`, error descriptions.
+- Keyboard navigable dispatch board.
+- Support `prefers-reduced-motion`.
+
+## Feature Modules
+
+Each feature folder contains: `components/`, `hooks/`, `types.ts`, optional `actions.ts` (server actions).
+
+## Do Not
+
+- Fetch directly in UI components without error handling.
+- Hardcode API URLs — use `NEXT_PUBLIC_API_URL`.
