@@ -44,7 +44,7 @@ export default function DriverHistoryPage() {
     setLoading(true);
     try {
       const result = await apiRequest<ShiftHistoryResponse>(
-        `/drivers/me/shifts?page=${p}&pageSize=15`,
+        `/drivers/me/shifts?page=${String(p)}&pageSize=15`,
         { token },
       );
       setData(result);
@@ -91,12 +91,12 @@ export default function DriverHistoryPage() {
               value={data.summary.allTimeCompleted}
               icon={TrendingUp}
               variant="info"
-              trend={`${data.total} records in history`}
+              trend={`${String(data.total)} records in history`}
             />
           </div>
         ) : null}
 
-        {data && data.items.length === 0 ? (
+        {data?.items.length === 0 ? (
           <Card className="surface-elevated border-0">
             <CardContent className="py-14 text-center text-muted-foreground">
               No completed shifts yet. Finish a job from{' '}

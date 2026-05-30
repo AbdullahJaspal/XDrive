@@ -13,7 +13,7 @@ export function isOperatorStaffRole(role: string): boolean {
 }
 
 export function isDriverRole(role: string): boolean {
-  return role === UserRole.DRIVER;
+  return (role as UserRole) === UserRole.DRIVER;
 }
 
 /** @deprecated Use isOperatorStaffRole or isDriverRole */

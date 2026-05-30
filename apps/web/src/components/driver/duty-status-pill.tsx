@@ -23,15 +23,15 @@ export function DutyStatusPill() {
     const token = getAccessToken();
     if (!token) return;
     void apiRequest<DriverMeAvailability>('/drivers/me', { token })
-      .then((me) => setState(me.availability))
-      .catch(() => setState(null));
+      .then((me) => { setState(me.availability); })
+      .catch(() => { setState(null); });
   }, []);
 
   useEffect(() => {
     refresh();
-    const onChange = () => refresh();
+    const onChange = () => { refresh(); };
     window.addEventListener(DUTY_CHANGED, onChange);
-    return () => window.removeEventListener(DUTY_CHANGED, onChange);
+    return () => { window.removeEventListener(DUTY_CHANGED, onChange); };
   }, [refresh]);
 
   if (!state) return null;

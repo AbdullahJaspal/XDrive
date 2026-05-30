@@ -69,15 +69,15 @@ export function AssignDriverPanel({ bookingId, drivers, onAssigned }: AssignDriv
       token,
       body: JSON.stringify({ driverId, vehicleId }),
     })
-      .then(() => onAssigned())
-      .catch((err) => {
+      .then(() => { onAssigned(); })
+      .catch((err: unknown) => {
         if (err instanceof ApiClientError && err.code === 'COMPLIANCE_BLOCKED') {
           setError(err.message);
         } else {
           setError(err instanceof Error ? err.message : 'Assignment failed');
         }
       })
-      .finally(() => setLoading(false));
+      .finally(() => { setLoading(false); });
   }
 
   if (available.length === 0) {
@@ -96,7 +96,7 @@ export function AssignDriverPanel({ bookingId, drivers, onAssigned }: AssignDriv
           id="assign-driver"
           className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
           value={driverId}
-          onChange={(e) => handleDriverChange(e.target.value)}
+          onChange={(e) => { handleDriverChange(e.target.value); }}
         >
           <option value="">Select driver…</option>
           {available.map((d) => (

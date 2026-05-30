@@ -80,7 +80,7 @@ export function LicenceUploadForm({ onUploaded }: LicenceUploadFormProps) {
         <Textarea
           id="upload-notes"
           value={notes}
-          onChange={(e) => setNotes(e.target.value)}
+          onChange={(e) => { setNotes(e.target.value); }}
           placeholder="e.g. Renewal submitted to council on 12 May"
           rows={2}
         />

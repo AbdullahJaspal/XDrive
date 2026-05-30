@@ -18,7 +18,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { getAccessToken } from '@/lib/auth/session-client';
 import { apiRequest } from '@/lib/api/client';
-import type { BookingSummary } from '@uk-phv/shared-types';
+import { BookingStatus, type BookingSummary } from '@uk-phv/shared-types';
 
 const ASSIGNABLE = new Set(['REQUESTED', 'CONFIRMED']);
 
@@ -99,7 +99,7 @@ export default function AdminDispatchDetailPage() {
     );
   }
 
-  const canConfirm = booking.status === 'REQUESTED';
+  const canConfirm = booking.status === BookingStatus.REQUESTED;
   const canAssign = ASSIGNABLE.has(booking.status) && !booking.driverId;
   const canCancel = !['COMPLETED', 'CANCELLED'].includes(booking.status);
 
@@ -223,7 +223,7 @@ export default function AdminDispatchDetailPage() {
                     <Textarea
                       id="cancel-reason"
                       value={cancelReason}
-                      onChange={(e) => setCancelReason(e.target.value)}
+                      onChange={(e) => { setCancelReason(e.target.value); }}
                       rows={2}
                     />
                   </div>

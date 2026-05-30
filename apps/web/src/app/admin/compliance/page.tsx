@@ -91,14 +91,14 @@ export default function AdminCompliancePage() {
           <Button
             variant={filter === 'attention' ? 'default' : 'outline'}
             size="sm"
-            onClick={() => setFilter('attention')}
+            onClick={() => { setFilter('attention'); }}
           >
             Needs attention
           </Button>
           <Button
             variant={filter === 'all' ? 'default' : 'outline'}
             size="sm"
-            onClick={() => setFilter('all')}
+            onClick={() => { setFilter('all'); }}
           >
             All documents
           </Button>

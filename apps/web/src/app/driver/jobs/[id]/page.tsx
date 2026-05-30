@@ -26,7 +26,7 @@ import { BOOKING_STATUS_LABELS } from '@/lib/driver/labels';
 import { getNextDriverAction } from '@/lib/driver/status-actions';
 import { getAccessToken } from '@/lib/auth/session-client';
 import { apiRequest } from '@/lib/api/client';
-import type { BookingStatus, BookingSummary } from '@uk-phv/shared-types';
+import type { BookingSummary } from '@uk-phv/shared-types';
 
 interface DriverBookingDetail extends BookingSummary {
   notes: string | null;
@@ -82,7 +82,7 @@ export default function DriverJobDetailPage() {
 
   async function advanceStatus() {
     if (!job) return;
-    const action = getNextDriverAction(job.status as BookingStatus);
+    const action = getNextDriverAction(job.status);
     if (!action) return;
 
     const token = getAccessToken();
@@ -132,7 +132,7 @@ export default function DriverJobDetailPage() {
     );
   }
 
-  const nextAction = getNextDriverAction(job.status as BookingStatus);
+  const nextAction = getNextDriverAction(job.status);
   const isTerminal = ['COMPLETED', 'CANCELLED', 'NO_SHOW'].includes(job.status);
 
   return (

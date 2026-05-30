@@ -10,21 +10,20 @@ export function useBookingFieldErrors() {
   const clearFieldError = useCallback((key: BookingFormFieldKey) => {
     setFieldErrors((prev) => {
       if (!prev[key]) return prev;
-      const next = { ...prev };
-      delete next[key];
-      return next;
+      return Object.fromEntries(
+        Object.entries(prev).filter(([k]) => k !== key),
+      );
     });
   }, []);
 
   const clearFieldErrors = useCallback((keys: BookingFormFieldKey[]) => {
     setFieldErrors((prev) => {
+      const keySet = new Set<string>(keys);
       const hasAny = keys.some((k) => prev[k]);
       if (!hasAny) return prev;
-      const next = { ...prev };
-      for (const key of keys) {
-        delete next[key];
-      }
-      return next;
+      return Object.fromEntries(
+        Object.entries(prev).filter(([k]) => !keySet.has(k)),
+      );
     });
   }, []);
 

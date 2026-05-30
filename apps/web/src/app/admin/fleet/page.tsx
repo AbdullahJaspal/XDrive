@@ -99,10 +99,10 @@ export default function AdminFleetPage() {
         </div>
 
         <div className="flex gap-2">
-          <Button variant={tab === 'drivers' ? 'default' : 'outline'} size="sm" onClick={() => setTab('drivers')}>
+          <Button variant={tab === 'drivers' ? 'default' : 'outline'} size="sm" onClick={() => { setTab('drivers'); }}>
             Drivers
           </Button>
-          <Button variant={tab === 'vehicles' ? 'default' : 'outline'} size="sm" onClick={() => setTab('vehicles')}>
+          <Button variant={tab === 'vehicles' ? 'default' : 'outline'} size="sm" onClick={() => { setTab('vehicles'); }}>
             Vehicles
           </Button>
         </div>
@@ -158,7 +158,7 @@ export default function AdminFleetPage() {
         ) : (
           <ul className="space-y-3">
             {vehicles.map((vehicle) => {
-              const licence = vehicle.licences.find((l) => l) ?? vehicle.licences[0];
+              const licence = vehicle.licences[0];
               return (
                 <li key={vehicle.id}>
                   <Card className="surface-elevated border-0">
@@ -168,7 +168,7 @@ export default function AdminFleetPage() {
                         <p className="text-sm text-muted-foreground">
                           {vehicle.make} {vehicle.model}
                           {vehicle.colour ? ` · ${vehicle.colour}` : ''}
-                          {vehicle.year ? ` · ${vehicle.year}` : ''}
+                          {vehicle.year != null ? ` · ${String(vehicle.year)}` : ''}
                         </p>
                         {vehicle.isWheelchairAccessible ? (
                           <Badge variant="accent" className="mt-2">

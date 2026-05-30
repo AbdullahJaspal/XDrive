@@ -56,7 +56,7 @@ function toBookingSummary(booking: Booking): BookingSummary {
 }
 
 async function requireDriverForUser(userId: string, role: string) {
-  if (role !== UserRole.DRIVER) {
+  if ((role as UserRole) !== UserRole.DRIVER) {
     throw AppError.forbidden('Driver access only');
   }
   const driver = await prisma.driver.findUnique({
@@ -300,7 +300,7 @@ export const driversService = {
     if (!booking) throw AppError.notFound('Booking', bookingId);
 
     const allowed = getNextDriverAction(booking.status);
-    if (!allowed || allowed.status !== toStatus) {
+    if (allowed?.status !== toStatus) {
       throw AppError.validation(
         `Cannot change status from ${booking.status} to ${toStatus}`,
       );

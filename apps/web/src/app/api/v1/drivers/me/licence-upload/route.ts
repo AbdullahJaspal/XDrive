@@ -12,7 +12,9 @@ export async function POST(request: NextRequest) {
     withAuth(request, null, async (user) => {
       const formData = await request.formData();
       const file = formData.get('file');
-      const notes = (formData.get('notes') as string | null)?.trim() || undefined;
+      const rawNotes = formData.get('notes');
+      const notes =
+        typeof rawNotes === 'string' && rawNotes.trim() ? rawNotes.trim() : undefined;
 
       if (!(file instanceof File)) {
         throw AppError.validation('File is required');

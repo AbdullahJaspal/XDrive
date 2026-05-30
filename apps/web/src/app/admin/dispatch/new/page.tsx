@@ -15,6 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { getAccessToken } from '@/lib/auth/session-client';
 import { apiRequest } from '@/lib/api/client';
+import { readFormString } from '@/lib/form-data';
 import type { BookingSummary } from '@uk-phv/shared-types';
 
 export default function AdminNewBookingPage() {
@@ -28,13 +29,13 @@ export default function AdminNewBookingPage() {
     if (!token) return;
 
     const form = new FormData(e.currentTarget);
-    const pickupAddress = String(form.get('pickupAddress') ?? '').trim();
-    const pickupPostcode = String(form.get('pickupPostcode') ?? '').trim();
-    const dropoffAddress = String(form.get('dropoffAddress') ?? '').trim();
-    const dropoffPostcode = String(form.get('dropoffPostcode') ?? '').trim();
-    const passengerName = String(form.get('passengerName') ?? '').trim();
-    const passengerPhone = String(form.get('passengerPhone') ?? '').trim();
-    const notes = String(form.get('notes') ?? '').trim();
+    const pickupAddress = readFormString(form, 'pickupAddress');
+    const pickupPostcode = readFormString(form, 'pickupPostcode');
+    const dropoffAddress = readFormString(form, 'dropoffAddress');
+    const dropoffPostcode = readFormString(form, 'dropoffPostcode');
+    const passengerName = readFormString(form, 'passengerName');
+    const passengerPhone = readFormString(form, 'passengerPhone');
+    const notes = readFormString(form, 'notes');
 
     setLoading(true);
     setError(null);
@@ -65,10 +66,10 @@ export default function AdminNewBookingPage() {
       .then((booking) => {
         router.push(`/admin/dispatch/${booking.id}`);
       })
-      .catch((err) => {
+      .catch((err: unknown) => {
         setError(err instanceof Error ? err.message : 'Could not create booking');
       })
-      .finally(() => setLoading(false));
+      .finally(() => { setLoading(false); });
   }
 
   return (

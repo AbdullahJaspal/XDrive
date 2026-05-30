@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
         where: { userId: user.id },
         select: { id: true },
       });
-      if (!driver || driver.id !== driverId) {
+      if (driver?.id !== driverId) {
         throw AppError.forbidden('Cannot subscribe to this driver channel');
       }
     } else {

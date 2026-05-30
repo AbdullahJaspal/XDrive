@@ -98,7 +98,7 @@ export default function AdminDispatchPage() {
               key={id}
               variant={tab === id ? 'default' : 'outline'}
               size="sm"
-              onClick={() => setTab(id)}
+              onClick={() => { setTab(id); }}
             >
               {label}
             </Button>

@@ -104,7 +104,7 @@ export default function DriverJobsPage() {
               key={tabScope}
               variant={scope === tabScope ? 'default' : 'outline'}
               size="sm"
-              onClick={() => setScope(tabScope)}
+              onClick={() => { setScope(tabScope); }}
               role="tab"
               aria-selected={scope === tabScope}
             >

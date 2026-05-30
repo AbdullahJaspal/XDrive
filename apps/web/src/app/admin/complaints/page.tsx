@@ -71,7 +71,7 @@ export default function AdminComplaintsPage() {
         setResolution('');
         void load(true);
       })
-      .finally(() => setSubmitting(false));
+      .finally(() => { setSubmitting(false); });
   }
 
   const openCount = complaints.filter(
@@ -137,7 +137,7 @@ export default function AdminComplaintsPage() {
                             <Textarea
                               id={`resolution-${c.id}`}
                               value={resolution}
-                              onChange={(e) => setResolution(e.target.value)}
+                              onChange={(e) => { setResolution(e.target.value); }}
                               rows={3}
                             />
                           </div>
@@ -145,7 +145,7 @@ export default function AdminComplaintsPage() {
                             <Button
                               size="sm"
                               disabled={submitting || !resolution.trim()}
-                              onClick={() => handleResolve(c.id)}
+                              onClick={() => { handleResolve(c.id); }}
                             >
                               {submitting ? (
                                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -166,7 +166,7 @@ export default function AdminComplaintsPage() {
                           </div>
                         </div>
                       ) : (
-                        <Button size="sm" variant="outline" onClick={() => setResolvingId(c.id)}>
+                        <Button size="sm" variant="outline" onClick={() => { setResolvingId(c.id); }}>
                           Resolve complaint
                         </Button>
                       )

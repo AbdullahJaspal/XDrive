@@ -12,7 +12,10 @@ const NAV_BY_ROLE: Record<UserRole, AdminNavKey[]> = {
 };
 
 export function adminNavForRole(role: string): AdminNavKey[] {
-  return NAV_BY_ROLE[role as UserRole] ?? ['dashboard'];
+  if (role in NAV_BY_ROLE) {
+    return NAV_BY_ROLE[role as UserRole];
+  }
+  return ['dashboard'];
 }
 
 export const ADMIN_NAV_ITEMS: {

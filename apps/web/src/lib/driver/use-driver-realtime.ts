@@ -29,7 +29,7 @@ export function useDriverRealtime(onRefresh: () => void): DriverRealtimeState {
   const onRefreshRef = useRef(onRefresh);
   onRefreshRef.current = onRefresh;
 
-  const clearLastMessage = useCallback(() => setLastMessage(null), []);
+  const clearLastMessage = useCallback(() => { setLastMessage(null); }, []);
 
   useEffect(() => {
     setLive(isPusherEnabled());
@@ -39,8 +39,8 @@ export function useDriverRealtime(onRefresh: () => void): DriverRealtimeState {
     const token = getAccessToken();
     if (!token) return;
     void apiRequest<DriverMeId>('/drivers/me', { token })
-      .then((me) => setDriverId(me.id))
-      .catch(() => setDriverId(null));
+      .then((me) => { setDriverId(me.id); })
+      .catch(() => { setDriverId(null); });
   }, []);
 
   useEffect(() => {

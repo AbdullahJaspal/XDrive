@@ -143,7 +143,7 @@ export function DutyToggleCard({
           </Button>
         </div>
 
-        {availability.onDuty && availability.canGoOffDuty === false && !availability.onTrip ? (
+        {availability.onDuty && !availability.canGoOffDuty && !availability.onTrip ? (
           <p className="text-xs text-muted-foreground">
             Finish or hand off active jobs before going off duty.
           </p>

@@ -147,9 +147,7 @@ export const bookingsService = {
     const statusFilter =
       options.statuses && options.statuses.length > 0
         ? { in: options.statuses }
-        : options.status
-          ? options.status
-          : undefined;
+        : (options.status ?? undefined);
     const where = {
       operatorId,
       ...(statusFilter ? { status: statusFilter } : {}),
