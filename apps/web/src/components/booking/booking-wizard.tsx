@@ -140,7 +140,9 @@ export function BookingWizard({ initial }: BookingWizardProps) {
               <Input
                 id="pickup-address"
                 value={pickupAddress}
-                onChange={(e) => setPickupAddress(e.target.value)}
+                onChange={(e) => {
+                  setPickupAddress(e.target.value);
+                }}
                 placeholder="Street address"
               />
             </div>
@@ -151,7 +153,9 @@ export function BookingWizard({ initial }: BookingWizardProps) {
               <Input
                 id="pickup-postcode"
                 value={pickupPostcode}
-                onChange={(e) => setPickupPostcode(e.target.value)}
+                onChange={(e) => {
+                  setPickupPostcode(e.target.value);
+                }}
                 placeholder="WV1 1AA"
                 className="uppercase"
               />
@@ -168,7 +172,9 @@ export function BookingWizard({ initial }: BookingWizardProps) {
               <Input
                 id="dropoff-address"
                 value={dropoffAddress}
-                onChange={(e) => setDropoffAddress(e.target.value)}
+                onChange={(e) => {
+                  setDropoffAddress(e.target.value);
+                }}
                 placeholder="Destination"
               />
             </div>
@@ -179,7 +185,9 @@ export function BookingWizard({ initial }: BookingWizardProps) {
               <Input
                 id="dropoff-postcode"
                 value={dropoffPostcode}
-                onChange={(e) => setDropoffPostcode(e.target.value)}
+                onChange={(e) => {
+                  setDropoffPostcode(e.target.value);
+                }}
                 placeholder="B26 3QJ"
                 className="uppercase"
               />
@@ -205,7 +213,9 @@ export function BookingWizard({ initial }: BookingWizardProps) {
               id="scheduled-at"
               type="datetime-local"
               value={scheduledAt}
-              onChange={(e) => setScheduledAt(e.target.value)}
+              onChange={(e) => {
+                setScheduledAt(e.target.value);
+              }}
               min={new Date().toISOString().slice(0, 16)}
               className="max-w-sm"
             />
@@ -227,7 +237,9 @@ export function BookingWizard({ initial }: BookingWizardProps) {
               <Input
                 id="passenger-name"
                 value={passengerName}
-                onChange={(e) => setPassengerName(e.target.value)}
+                onChange={(e) => {
+                  setPassengerName(e.target.value);
+                }}
               />
             </div>
             <div className="space-y-2">
@@ -238,7 +250,9 @@ export function BookingWizard({ initial }: BookingWizardProps) {
                 id="passenger-phone"
                 type="tel"
                 value={passengerPhone}
-                onChange={(e) => setPassengerPhone(e.target.value)}
+                onChange={(e) => {
+                  setPassengerPhone(e.target.value);
+                }}
                 placeholder="07XXX XXXXXX"
               />
             </div>
@@ -250,7 +264,9 @@ export function BookingWizard({ initial }: BookingWizardProps) {
                 id="passenger-email"
                 type="email"
                 value={passengerEmail}
-                onChange={(e) => setPassengerEmail(e.target.value)}
+                onChange={(e) => {
+                  setPassengerEmail(e.target.value);
+                }}
               />
             </div>
           </div>
@@ -261,7 +277,9 @@ export function BookingWizard({ initial }: BookingWizardProps) {
                 <button
                   key={opt.value}
                   type="button"
-                  onClick={() => toggleAccessibility(opt.value)}
+                  onClick={() => {
+                    toggleAccessibility(opt.value);
+                  }}
                   className={cn(
                     'rounded-sm border px-3 py-2 text-xs transition-colors',
                     accessibility.includes(opt.value)
@@ -281,7 +299,9 @@ export function BookingWizard({ initial }: BookingWizardProps) {
             <Textarea
               id="notes"
               value={notes}
-              onChange={(e) => setNotes(e.target.value)}
+              onChange={(e) => {
+                setNotes(e.target.value);
+              }}
               placeholder="Flight number, meet point, luggage…"
             />
           </div>
@@ -338,7 +358,9 @@ export function BookingWizard({ initial }: BookingWizardProps) {
         <Button
           type="button"
           variant="ghost"
-          onClick={() => setStep((s) => Math.max(0, s - 1))}
+          onClick={() => {
+            setStep((s) => Math.max(0, s - 1));
+          }}
           disabled={step === 0 || loading}
           className={cn(step === 0 && 'invisible')}
         >
@@ -351,7 +373,9 @@ export function BookingWizard({ initial }: BookingWizardProps) {
             variant="accent"
             size="lg"
             disabled={!canNext}
-            onClick={() => setStep((s) => s + 1)}
+            onClick={() => {
+              setStep((s) => s + 1);
+            }}
           >
             Continue
             <ArrowRight className="h-4 w-4" />

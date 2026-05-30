@@ -33,7 +33,9 @@ export function HeroBookingStrip() {
         <Input
           id="hero-pickup"
           value={pickup}
-          onChange={(e) => setPickup(e.target.value)}
+          onChange={(e) => {
+            setPickup(e.target.value);
+          }}
           placeholder="Address or postcode"
           className="h-12 border-white/15 bg-white/10 text-white placeholder:text-white/40 focus-visible:border-luxury/60 focus-visible:ring-luxury/30"
         />
@@ -48,7 +50,9 @@ export function HeroBookingStrip() {
         <Input
           id="hero-dropoff"
           value={dropoff}
-          onChange={(e) => setDropoff(e.target.value)}
+          onChange={(e) => {
+            setDropoff(e.target.value);
+          }}
           placeholder="Destination"
           className="h-12 border-white/15 bg-white/10 text-white placeholder:text-white/40 focus-visible:border-luxury/60 focus-visible:ring-luxury/30"
         />

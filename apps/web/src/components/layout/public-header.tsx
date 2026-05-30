@@ -33,7 +33,9 @@ export function PublicHeader({ hero = false }: PublicHeaderProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
-    void fetchProfile().then((p) => setSignedIn(!!p));
+    void fetchProfile().then((p) => {
+      setSignedIn(!!p);
+    });
   }, []);
 
   useEffect(() => {
@@ -41,10 +43,14 @@ export function PublicHeader({ hero = false }: PublicHeaderProps) {
       setScrolled(true);
       return;
     }
-    const onScroll = () => setScrolled(window.scrollY > 32);
+    const onScroll = () => {
+      setScrolled(window.scrollY > 32);
+    };
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+    };
   }, [hero]);
 
   useEffect(() => {
@@ -70,7 +76,7 @@ export function PublicHeader({ hero = false }: PublicHeaderProps) {
 
   const visibleLinks = navLinks.filter((item) => {
     if ('auth' in item) {
-      if (item.auth === true) return signedIn;
+      if (item.auth) return signedIn;
       return !signedIn;
     }
     return true;
@@ -142,7 +148,9 @@ export function PublicHeader({ hero = false }: PublicHeaderProps) {
               )}
               aria-expanded={mobileOpen}
               aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
-              onClick={() => setMobileOpen((o) => !o)}
+              onClick={() => {
+                setMobileOpen((o) => !o);
+              }}
             >
               {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
@@ -154,7 +162,9 @@ export function PublicHeader({ hero = false }: PublicHeaderProps) {
         <div
           className="fixed inset-0 z-40 bg-primary/40 backdrop-blur-sm md:hidden"
           aria-hidden
-          onClick={() => setMobileOpen(false)}
+          onClick={() => {
+            setMobileOpen(false);
+          }}
         />
       ) : null}
 
@@ -181,7 +191,9 @@ export function PublicHeader({ hero = false }: PublicHeaderProps) {
             <Link
               href="/#book"
               className="py-4 font-display text-2xl font-medium text-muted-foreground"
-              onClick={() => setMobileOpen(false)}
+              onClick={() => {
+            setMobileOpen(false);
+          }}
             >
               Quick book
             </Link>

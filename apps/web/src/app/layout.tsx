@@ -39,7 +39,7 @@ export const metadata: Metadata = {
         url: '/og.png',
         width: 1200,
         height: 630,
-        alt: `${BRAND.name}`,
+        alt: BRAND.name,
       },
     ],
   },
