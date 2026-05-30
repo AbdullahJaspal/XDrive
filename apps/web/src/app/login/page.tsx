@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 import { PageShell } from '@/components/layout/page-shell';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -72,10 +71,8 @@ export default function LoginPage() {
     <PageShell>
       <div className="mx-auto flex max-w-md flex-col px-4 py-12 sm:py-16">
         <div className="mb-8 text-center">
-          <Badge variant="secondary" className="mb-4">
-            Passenger account
-          </Badge>
-          <h1 className="text-3xl font-bold">
+          <p className="label-caps text-luxury">Guest account</p>
+          <h1 className="mt-2 font-display text-4xl font-medium">
             {mode === 'signin' ? 'Welcome back' : 'Create your account'}
           </h1>
           <p className="mt-2 text-muted-foreground">
@@ -110,7 +107,7 @@ export default function LoginPage() {
           </button>
         </div>
 
-        <Card className="glass-card border-0 shadow-xl shadow-slate-900/10">
+        <Card className="surface-elevated border-0">
           <CardHeader className="space-y-1">
             <CardTitle className="text-xl">
               {mode === 'signin' ? 'Sign in' : 'Register'}

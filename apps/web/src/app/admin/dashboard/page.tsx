@@ -211,7 +211,7 @@ export default function AdminDashboardPage() {
         </div>
 
         <div className="grid gap-6 lg:grid-cols-3">
-          <Card className="glass-card border-0 lg:col-span-2">
+          <Card className="surface-elevated border-0 lg:col-span-2">
             <CardHeader>
               <CardTitle>Quick actions</CardTitle>
               <CardDescription>Common operator workflows</CardDescription>
@@ -230,7 +230,7 @@ export default function AdminDashboardPage() {
             </CardContent>
           </Card>
 
-          <Card className="glass-card border-0 bg-gradient-to-br from-primary/5 to-card">
+          <Card className="surface-elevated border-0">
             <CardHeader>
               <CardTitle className="text-lg">Compliance reminder</CardTitle>
             </CardHeader>

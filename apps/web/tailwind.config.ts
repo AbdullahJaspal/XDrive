@@ -8,7 +8,7 @@ const config: Config = {
     extend: {
       fontFamily: {
         sans: ['var(--font-sans)', 'system-ui', 'sans-serif'],
-        display: ['var(--font-display)', 'var(--font-sans)', 'system-ui', 'sans-serif'],
+        display: ['var(--font-display)', 'Georgia', 'serif'],
       },
       colors: {
         border: 'hsl(var(--border))',
@@ -40,6 +40,10 @@ const config: Config = {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
+        luxury: {
+          DEFAULT: 'hsl(var(--luxury-gold))',
+          charcoal: 'hsl(var(--luxury-charcoal))',
+        },
         success: {
           DEFAULT: 'hsl(var(--success))',
         },
@@ -49,9 +53,8 @@ const config: Config = {
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
       },
-      boxShadow: {
-        primary: '0 10px 30px -8px hsl(222 56% 28% / 0.35)',
-        accent: '0 10px 30px -8px hsl(38 92% 50% / 0.4)',
+      letterSpacing: {
+        luxury: '0.2em',
       },
     },
   },

@@ -20,7 +20,7 @@ const iconStyles = {
 
 export function StatCard({ label, value, icon: Icon, trend, variant = 'default' }: StatCardProps) {
   return (
-    <Card className="glass-card overflow-hidden transition-shadow hover:shadow-xl hover:shadow-slate-900/10">
+    <Card className="surface-elevated overflow-hidden">
       <CardContent className="p-6">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-3">

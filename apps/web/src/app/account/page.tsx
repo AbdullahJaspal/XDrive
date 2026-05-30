@@ -77,7 +77,8 @@ export default function AccountPage() {
       <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6 sm:py-14">
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Hi, {name.split(' ')[0]}</h1>
+            <p className="label-caps text-luxury">Your account</p>
+            <h1 className="font-display text-4xl font-medium">Welcome, {name.split(' ')[0]}</h1>
             <p className="mt-1 text-muted-foreground">Your trips and booking history</p>
           </div>
           <div className="flex gap-2">
@@ -100,7 +101,7 @@ export default function AccountPage() {
         </div>
 
         {bookings.length === 0 ? (
-          <Card className="glass-card border-0 text-center">
+          <Card className="surface-elevated border-0 text-center">
             <CardContent className="py-12">
               <MapPin className="mx-auto h-12 w-12 text-muted-foreground/40" />
               <p className="mt-4 font-medium">No trips yet</p>
@@ -117,7 +118,7 @@ export default function AccountPage() {
           <ul className="space-y-4">
             {bookings.map((b) => (
               <li key={b.id}>
-                <Card className="glass-card border-0 transition-shadow hover:shadow-lg">
+                <Card className="surface-elevated border-0">
                   <CardHeader className="pb-2">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <CardTitle className="font-mono text-base">{b.reference}</CardTitle>

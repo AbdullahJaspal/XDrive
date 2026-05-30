@@ -1,9 +1,7 @@
-import { CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface ConfirmationPageProps {
   searchParams: Promise<{ ref?: string }>;
@@ -14,33 +12,33 @@ export default async function BookingConfirmationPage({ searchParams }: Confirma
 
   return (
     <PageShell>
-      <div className="mx-auto flex max-w-lg flex-col items-center px-4 py-16 text-center sm:py-24">
-        <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
-          <CheckCircle2 className="h-9 w-9" aria-hidden />
+      <div className="mx-auto flex min-h-[60vh] max-w-lg flex-col items-center justify-center px-4 py-20 text-center sm:py-28">
+        <div className="mb-8 flex h-14 w-14 items-center justify-center rounded-full border border-luxury/40">
+          <span className="font-display text-2xl text-luxury">✓</span>
         </div>
-        <h1 className="text-3xl font-bold">Booking requested</h1>
-        <p className="mt-3 text-muted-foreground">
-          Thank you — your operator will confirm your fare and assign a licensed driver shortly.
+        <p className="label-caps text-luxury">Reservation received</p>
+        <h1 className="mt-3 font-display text-4xl font-medium">We&apos;ll be in touch shortly</h1>
+        <p className="mt-4 text-muted-foreground leading-relaxed">
+          Your operator will confirm your fare and assign a licensed driver. You&apos;ll receive updates
+          at the number you provided.
         </p>
 
-        <Card className="glass-card mt-10 w-full border-0 text-left">
-          <CardHeader>
-            <CardTitle className="text-lg">Your reference</CardTitle>
-            <CardDescription>Keep this for phone enquiries</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="font-mono text-2xl font-bold tracking-wide text-primary">
-              {ref ?? '—'}
+        {ref ? (
+          <div className="mt-12 w-full border border-border bg-card p-8">
+            <p className="label-caps">Reference</p>
+            <p className="mt-2 font-mono text-3xl font-medium tracking-wider text-foreground">
+              {ref}
             </p>
-          </CardContent>
-        </Card>
+            <p className="mt-3 text-xs text-muted-foreground">Please quote this if you call us</p>
+          </div>
+        ) : null}
 
-        <div className="mt-10 flex flex-wrap justify-center gap-3">
+        <div className="mt-12 flex flex-wrap justify-center gap-4">
           <Button variant="accent" size="lg" asChild>
-            <Link href="/">Book another trip</Link>
+            <Link href="/book">Book another journey</Link>
           </Button>
-          <Button variant="outline" size="lg" asChild>
-            <Link href="/account">View my trips</Link>
+          <Button variant="luxury" size="lg" asChild>
+            <Link href="/account">My trips</Link>
           </Button>
         </div>
       </div>

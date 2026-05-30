@@ -102,7 +102,7 @@ export default function StaffLoginPage() {
             </Link>
           </div>
 
-          <Card className="glass-card border-0 shadow-xl shadow-slate-900/10">
+          <Card className="surface-elevated border-0">
             <CardHeader className="space-y-1">
               <CardTitle className="text-2xl">Operator sign in</CardTitle>
               <CardDescription>Admin, dispatch, and compliance staff only</CardDescription>
