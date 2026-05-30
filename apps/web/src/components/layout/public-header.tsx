@@ -13,7 +13,9 @@ export function PublicHeader() {
   const [signedIn, setSignedIn] = useState(false);
 
   useEffect(() => {
-    void fetchProfile().then((p) => setSignedIn(!!p));
+    void fetchProfile().then((p) => {
+      setSignedIn(!!p);
+    });
   }, []);
 
   return (

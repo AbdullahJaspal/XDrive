@@ -108,7 +108,9 @@ export function BookingForm({ compact = false, onSuccess }: BookingFormProps) {
             id="pickup-address"
             required
             value={pickupAddress}
-            onChange={(e) => setPickupAddress(e.target.value)}
+            onChange={(e) => {
+              setPickupAddress(e.target.value);
+            }}
             placeholder="e.g. 12 High Street"
           />
         </div>
@@ -118,7 +120,9 @@ export function BookingForm({ compact = false, onSuccess }: BookingFormProps) {
             id="pickup-postcode"
             required
             value={pickupPostcode}
-            onChange={(e) => setPickupPostcode(e.target.value)}
+            onChange={(e) => {
+              setPickupPostcode(e.target.value);
+            }}
             placeholder="WV1 1AA"
             className="uppercase"
           />
@@ -132,7 +136,9 @@ export function BookingForm({ compact = false, onSuccess }: BookingFormProps) {
             id="scheduled-at"
             type="datetime-local"
             value={scheduledAt}
-            onChange={(e) => setScheduledAt(e.target.value)}
+            onChange={(e) => {
+              setScheduledAt(e.target.value);
+            }}
             min={new Date().toISOString().slice(0, 16)}
           />
         </div>
@@ -142,7 +148,9 @@ export function BookingForm({ compact = false, onSuccess }: BookingFormProps) {
             id="dropoff-address"
             required
             value={dropoffAddress}
-            onChange={(e) => setDropoffAddress(e.target.value)}
+            onChange={(e) => {
+              setDropoffAddress(e.target.value);
+            }}
             placeholder="e.g. Birmingham Airport"
           />
         </div>
@@ -152,7 +160,9 @@ export function BookingForm({ compact = false, onSuccess }: BookingFormProps) {
             id="dropoff-postcode"
             required
             value={dropoffPostcode}
-            onChange={(e) => setDropoffPostcode(e.target.value)}
+            onChange={(e) => {
+              setDropoffPostcode(e.target.value);
+            }}
             placeholder="B26 3QJ"
             className="uppercase"
           />
@@ -169,7 +179,9 @@ export function BookingForm({ compact = false, onSuccess }: BookingFormProps) {
             id="passenger-name"
             required
             value={passengerName}
-            onChange={(e) => setPassengerName(e.target.value)}
+            onChange={(e) => {
+              setPassengerName(e.target.value);
+            }}
           />
         </div>
         <div className="space-y-2">
@@ -182,7 +194,9 @@ export function BookingForm({ compact = false, onSuccess }: BookingFormProps) {
             required
             type="tel"
             value={passengerPhone}
-            onChange={(e) => setPassengerPhone(e.target.value)}
+            onChange={(e) => {
+              setPassengerPhone(e.target.value);
+            }}
             placeholder="07XXX XXXXXX"
           />
         </div>
@@ -193,7 +207,9 @@ export function BookingForm({ compact = false, onSuccess }: BookingFormProps) {
               id="passenger-email"
               type="email"
               value={passengerEmail}
-              onChange={(e) => setPassengerEmail(e.target.value)}
+              onChange={(e) => {
+                setPassengerEmail(e.target.value);
+              }}
               placeholder="for booking updates"
             />
           </div>
@@ -212,7 +228,9 @@ export function BookingForm({ compact = false, onSuccess }: BookingFormProps) {
                 <button
                   key={opt.value}
                   type="button"
-                  onClick={() => toggleAccessibility(opt.value)}
+                  onClick={() => {
+                    toggleAccessibility(opt.value);
+                  }}
                   className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
                     accessibility.includes(opt.value)
                       ? 'border-primary bg-primary/10 text-primary'
@@ -229,7 +247,9 @@ export function BookingForm({ compact = false, onSuccess }: BookingFormProps) {
             <Textarea
               id="notes"
               value={notes}
-              onChange={(e) => setNotes(e.target.value)}
+              onChange={(e) => {
+                setNotes(e.target.value);
+              }}
               placeholder="Flight number, meet point, luggage…"
             />
           </div>

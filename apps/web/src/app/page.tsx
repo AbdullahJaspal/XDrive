@@ -135,7 +135,7 @@ export default function HomePage() {
               <Card
                 key={title}
                 className={`glass-card animate-fade-in-up border-0 border-l-4 ${accent} transition-transform hover:-translate-y-0.5`}
-                style={{ animationDelay: `${i * 0.08}s` }}
+                style={{ animationDelay: `${String(i * 0.08)}s` }}
               >
                 <CardHeader>
                   <div className="mb-2 flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">

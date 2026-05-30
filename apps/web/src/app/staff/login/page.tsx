@@ -119,7 +119,9 @@ export default function StaffLoginPage() {
                       autoComplete="email"
                       required
                       value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                      }}
                       className="pl-10"
                       placeholder="you@operator.co.uk"
                     />
@@ -135,7 +137,9 @@ export default function StaffLoginPage() {
                       autoComplete="current-password"
                       required
                       value={password}
-                      onChange={(e) => setPassword(e.target.value)}
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                      }}
                       className="pl-10"
                     />
                   </div>

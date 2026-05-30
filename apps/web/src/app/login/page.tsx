@@ -91,7 +91,9 @@ export default function LoginPage() {
             className={`flex-1 rounded-md py-2 text-sm font-medium transition-colors ${
               mode === 'signin' ? 'bg-card shadow-sm' : 'text-muted-foreground'
             }`}
-            onClick={() => setMode('signin')}
+            onClick={() => {
+              setMode('signin');
+            }}
           >
             Sign in
           </button>
@@ -100,7 +102,9 @@ export default function LoginPage() {
             className={`flex-1 rounded-md py-2 text-sm font-medium transition-colors ${
               mode === 'register' ? 'bg-card shadow-sm' : 'text-muted-foreground'
             }`}
-            onClick={() => setMode('register')}
+            onClick={() => {
+              setMode('register');
+            }}
           >
             Register
           </button>
@@ -129,7 +133,9 @@ export default function LoginPage() {
                       id="firstName"
                       required
                       value={firstName}
-                      onChange={(e) => setFirstName(e.target.value)}
+                      onChange={(e) => {
+                        setFirstName(e.target.value);
+                      }}
                     />
                   </div>
                   <div className="space-y-2">
@@ -138,7 +144,9 @@ export default function LoginPage() {
                       id="lastName"
                       required
                       value={lastName}
-                      onChange={(e) => setLastName(e.target.value)}
+                      onChange={(e) => {
+                        setLastName(e.target.value);
+                      }}
                     />
                   </div>
                 </div>
@@ -153,7 +161,9 @@ export default function LoginPage() {
                     autoComplete="email"
                     required
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                    }}
                     className="pl-10"
                     placeholder="you@example.com"
                   />
@@ -170,7 +180,9 @@ export default function LoginPage() {
                     required
                     minLength={8}
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                    }}
                     className="pl-10"
                   />
                 </div>
