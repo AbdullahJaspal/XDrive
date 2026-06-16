@@ -52,3 +52,15 @@ export async function resolvePublicOperatorId(): Promise<string> {
   }
   return fallback.id;
 }
+
+export function getEmailConfig() {
+  const apiKey = process.env.RESEND_API_KEY?.trim();
+  const from = process.env.EMAIL_FROM?.trim();
+  const notificationTo = process.env.BOOKING_NOTIFICATION_EMAIL?.trim();
+  return {
+    apiKey,
+    from,
+    notificationTo,
+    isConfigured: Boolean(apiKey && from),
+  };
+}

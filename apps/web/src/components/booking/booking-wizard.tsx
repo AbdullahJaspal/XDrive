@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 import { BookingField } from '@/components/booking/booking-field';
+import { BookingMapPreview } from '@/components/booking/booking-map-preview';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -56,12 +57,8 @@ export function BookingWizard({ initial }: BookingWizardProps) {
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-  const {
-    fieldErrors,
-    clearFieldError,
-    clearAllFieldErrors,
-    applyFieldErrors,
-  } = useBookingFieldErrors();
+  const { fieldErrors, clearFieldError, clearAllFieldErrors, applyFieldErrors } =
+    useBookingFieldErrors();
 
   const [pickupAddress, setPickupAddress] = useState(initial?.pickup ?? '');
   const [pickupPostcode, setPickupPostcode] = useState('');
@@ -171,7 +168,7 @@ export function BookingWizard({ initial }: BookingWizardProps) {
   return (
     <div className="space-y-8">
       <div>
-        <div className="mb-3 flex justify-between text-xs uppercase tracking-luxury text-muted-foreground">
+        <div className="tracking-luxury text-muted-foreground mb-3 flex justify-between text-xs uppercase">
           {STEPS.map((label, i) => (
             <span
               key={label}
@@ -181,9 +178,9 @@ export function BookingWizard({ initial }: BookingWizardProps) {
             </span>
           ))}
         </div>
-        <div className="h-px w-full bg-border">
+        <div className="bg-border h-px w-full">
           <div
-            className="h-px bg-luxury transition-all duration-500"
+            className="bg-luxury h-px transition-all duration-500"
             style={{ width: `${String(progress)}%` }}
           />
         </div>
@@ -193,7 +190,7 @@ export function BookingWizard({ initial }: BookingWizardProps) {
         <div className="space-y-6">
           <div>
             <h2 className="font-display text-3xl font-medium">Where are you travelling?</h2>
-            <p className="mt-2 text-muted-foreground">Pickup and destination details</p>
+            <p className="text-muted-foreground mt-2">Pickup and destination details</p>
           </div>
           <div className="space-y-4">
             <BookingField
@@ -229,10 +226,10 @@ export function BookingWizard({ initial }: BookingWizardProps) {
                 autoComplete="postal-code"
               />
             </BookingField>
-            <div className="my-6 flex items-center gap-3 text-muted-foreground/50">
-              <div className="h-px flex-1 bg-border" />
-              <MapPin className="h-4 w-4 text-luxury" />
-              <div className="h-px flex-1 bg-border" />
+            <div className="text-muted-foreground/50 my-6 flex items-center gap-3">
+              <div className="bg-border h-px flex-1" />
+              <MapPin className="text-luxury h-4 w-4" />
+              <div className="bg-border h-px flex-1" />
             </div>
             <BookingField
               id="dropoff-address"
@@ -268,9 +265,12 @@ export function BookingWizard({ initial }: BookingWizardProps) {
               />
             </BookingField>
           </div>
-          <div className="surface-elevated flex aspect-[2/1] items-center justify-center rounded-sm bg-muted/30">
-            <p className="text-sm text-muted-foreground">Map preview — coming soon</p>
-          </div>
+          <BookingMapPreview
+            pickupAddress={pickupAddress}
+            pickupPostcode={pickupPostcode}
+            dropoffAddress={dropoffAddress}
+            dropoffPostcode={dropoffPostcode}
+          />
         </div>
       ) : null}
 
@@ -278,7 +278,7 @@ export function BookingWizard({ initial }: BookingWizardProps) {
         <div className="space-y-6">
           <div>
             <h2 className="font-display text-3xl font-medium">When do you need the car?</h2>
-            <p className="mt-2 text-muted-foreground">Leave blank for as soon as possible</p>
+            <p className="text-muted-foreground mt-2">Leave blank for as soon as possible</p>
           </div>
           <BookingField
             id="scheduled-at"
@@ -304,7 +304,7 @@ export function BookingWizard({ initial }: BookingWizardProps) {
         <div className="space-y-6">
           <div>
             <h2 className="font-display text-3xl font-medium">Your details</h2>
-            <p className="mt-2 text-muted-foreground">So we can confirm your reservation</p>
+            <p className="text-muted-foreground mt-2">So we can confirm your reservation</p>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <BookingField
@@ -398,9 +398,9 @@ export function BookingWizard({ initial }: BookingWizardProps) {
         <div className="space-y-6">
           <div>
             <h2 className="font-display text-3xl font-medium">Confirm your journey</h2>
-            <p className="mt-2 text-muted-foreground">Review before we request your vehicle</p>
+            <p className="text-muted-foreground mt-2">Review before we request your vehicle</p>
           </div>
-          <dl className="divide-y divide-border border border-border text-sm">
+          <dl className="divide-border border-border divide-y border text-sm">
             <div className="grid gap-1 p-4 sm:grid-cols-3">
               <dt className="label-caps">Pickup</dt>
               <dd className="sm:col-span-2">
@@ -433,7 +433,7 @@ export function BookingWizard({ initial }: BookingWizardProps) {
 
       {formError ? (
         <div
-          className="rounded-sm border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+          className="border-destructive/30 bg-destructive/10 text-destructive rounded-sm border px-4 py-3 text-sm"
           role="alert"
         >
           {formError}
@@ -455,7 +455,13 @@ export function BookingWizard({ initial }: BookingWizardProps) {
           Back
         </Button>
         {step < STEPS.length - 1 ? (
-          <Button type="button" variant="accent" size="lg" disabled={loading} onClick={handleContinue}>
+          <Button
+            type="button"
+            variant="accent"
+            size="lg"
+            disabled={loading}
+            onClick={handleContinue}
+          >
             Continue
             <ArrowRight className="h-4 w-4" />
           </Button>

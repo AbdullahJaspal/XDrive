@@ -5,6 +5,7 @@ import type { BookingSummary } from '@uk-phv/shared-types';
 import type { CreateBookingInput } from '@uk-phv/validation';
 
 import { getBookingRetentionYears } from '../config';
+import { sendBookingCreatedNotification } from '../emails/booking-notification';
 import { prisma } from '../db';
 import { AppError } from '../errors/app.error';
 import { emitToDriver, emitToOperator } from '../realtime';
@@ -58,6 +59,12 @@ export const bookingsService = {
     retentionExpiresAt.setFullYear(retentionExpiresAt.getFullYear() + retentionYears);
 
     const reference = generateReference();
+    const operator = await prisma.operator.findUnique({
+      where: { id: operatorId },
+      select: { contactEmail: true, tradingName: true, legalName: true },
+    });
+    if (!operator) throw AppError.notFound('Operator', operatorId);
+
     const booking = await prisma.booking.create({
       data: {
         operator: { connect: { id: operatorId } },
@@ -101,6 +108,11 @@ export const bookingsService = {
     });
 
     await emitToOperator(operatorId, 'booking:created', toSummary(booking));
+
+    void sendBookingCreatedNotification(booking, operator).catch((error: unknown) => {
+      console.error('Failed to send booking notification email', error);
+    });
+
     return toSummary(booking);
   },
 
@@ -110,10 +122,7 @@ export const bookingsService = {
     return toSummary(booking);
   },
 
-  async listByCustomer(
-    customerId: string,
-    options: { page: number; pageSize: number },
-  ) {
+  async listByCustomer(customerId: string, options: { page: number; pageSize: number }) {
     const skip = (options.page - 1) * options.pageSize;
     const where = { customerId };
     const [items, total] = await Promise.all([
@@ -170,12 +179,7 @@ export const bookingsService = {
     };
   },
 
-  async updateStatus(
-    bookingId: string,
-    toStatus: BookingStatus,
-    actorId: string,
-    reason?: string,
-  ) {
+  async updateStatus(bookingId: string, toStatus: BookingStatus, actorId: string, reason?: string) {
     const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
     if (!booking) throw AppError.notFound('Booking', bookingId);
 
@@ -217,8 +221,7 @@ export const bookingsService = {
     });
 
     if (booking.driverId) {
-      const event =
-        toStatus === 'CANCELLED' ? 'booking:cancelled' : 'booking:status_changed';
+      const event = toStatus === 'CANCELLED' ? 'booking:cancelled' : 'booking:status_changed';
       await emitToDriver(booking.driverId, event, summary);
     }
 
