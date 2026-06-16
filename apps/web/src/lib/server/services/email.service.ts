@@ -15,12 +15,18 @@ export function isEmailConfigured(): boolean {
   return getEmailConfig().isConfigured;
 }
 
+export interface EmailAttachment {
+  filename: string;
+  content: Buffer;
+}
+
 export async function sendEmail(params: {
   to: string | string[];
   subject: string;
   html: string;
   text: string;
   replyTo?: string;
+  attachments?: EmailAttachment[];
 }): Promise<void> {
   const client = getResend();
   const { from } = getEmailConfig();
@@ -33,6 +39,10 @@ export async function sendEmail(params: {
     html: params.html,
     text: params.text,
     replyTo: params.replyTo,
+    attachments: params.attachments?.map((attachment) => ({
+      filename: attachment.filename,
+      content: attachment.content,
+    })),
   });
 
   if (error) {

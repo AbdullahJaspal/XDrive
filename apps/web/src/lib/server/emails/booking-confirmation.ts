@@ -8,6 +8,8 @@ import {
   guestReceiptPdfUrl,
   guestTripUrl,
 } from './booking-email-shared';
+import { generateBookingReceiptPdf } from '../services/booking-receipt-pdf';
+import { buildPublicBookingView } from '../booking-public-view';
 import { sendEmail } from '../services/email.service';
 
 export async function sendBookingConfirmationToPassenger(
@@ -23,12 +25,16 @@ export async function sendBookingConfirmationToPassenger(
   const tripUrl = guestTripUrl(guestAccessToken);
   const receiptUrl = guestReceiptPdfUrl(guestAccessToken);
   const rows = buildBookingEmailRows(booking);
+  const view = buildPublicBookingView(booking, operator);
+  const pdf = await generateBookingReceiptPdf(view);
+
+  const intro =
+    'Thank you for booking with us. Your request has been received and our team will confirm your fare before dispatch. Your PDF receipt is attached to this email.';
 
   const html = buildEmailLayout({
     operatorName,
     title: 'Your booking is confirmed',
-    intro:
-      'Thank you for booking with us. Your request has been received and our team will confirm your fare before dispatch. Keep this email for your records.',
+    intro,
     rows,
     primaryCta: tripUrl ? { label: 'View booking details', href: tripUrl } : undefined,
     secondaryCta: receiptUrl ? { label: 'Download PDF receipt', href: receiptUrl } : undefined,
@@ -41,8 +47,7 @@ export async function sendBookingConfirmationToPassenger(
   const text = buildEmailText({
     operatorName,
     title: 'Your booking is confirmed',
-    intro:
-      'Thank you for booking with us. Your request has been received and our team will confirm your fare before dispatch.',
+    intro,
     rows,
     links: links.length > 0 ? links : undefined,
   });
@@ -52,6 +57,11 @@ export async function sendBookingConfirmationToPassenger(
     subject: `Booking confirmed — ${booking.reference}`,
     html,
     text,
-    replyTo: undefined,
+    attachments: [
+      {
+        filename: `booking-${booking.reference}.pdf`,
+        content: pdf,
+      },
+    ],
   });
 }

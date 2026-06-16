@@ -106,7 +106,12 @@ export function TripView({ booking, token }: TripViewProps) {
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
             <Button variant="accent" size="lg" asChild>
-              <a href={receiptUrl} download>
+              <a
+                href={receiptUrl}
+                download={`booking-${booking.reference}.pdf`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 <Download className="h-4 w-4" />
                 Download PDF receipt
               </a>

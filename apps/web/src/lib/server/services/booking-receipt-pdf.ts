@@ -1,4 +1,4 @@
-import PDFDocument from 'pdfkit';
+import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 
 import type { PublicBookingView } from '@uk-phv/shared-types';
 
@@ -9,83 +9,129 @@ import {
   formatScheduledAt,
 } from '@/lib/booking/display';
 
-function addRow(doc: InstanceType<typeof PDFDocument>, label: string, value: string): void {
-  doc.font('Helvetica-Bold').fontSize(10).fillColor('#6b7280').text(label);
-  doc.moveDown(0.15);
-  doc.font('Helvetica').fontSize(11).fillColor('#111827').text(value);
-  doc.moveDown(0.75);
+const PAGE_WIDTH = 595.28;
+const PAGE_HEIGHT = 841.89;
+const MARGIN = 50;
+const CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 2;
+
+function drawLines(
+  page: ReturnType<PDFDocument['addPage']>,
+  font: Awaited<ReturnType<PDFDocument['embedFont']>>,
+  lines: string[],
+  startY: number,
+  size: number,
+  color = rgb(0.07, 0.09, 0.15),
+): number {
+  let y = startY;
+  for (const line of lines) {
+    page.drawText(line, {
+      x: MARGIN,
+      y,
+      size,
+      font,
+      color,
+      maxWidth: CONTENT_WIDTH,
+      lineHeight: size + 4,
+    });
+    y -= size + 14;
+  }
+  return y;
 }
 
-export function generateBookingReceiptPdf(booking: PublicBookingView): Promise<Buffer> {
-  return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({ margin: 50, size: 'A4' });
-    const chunks: Buffer[] = [];
+export async function generateBookingReceiptPdf(booking: PublicBookingView): Promise<Buffer> {
+  const pdfDoc = await PDFDocument.create();
+  const page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
+  const regular = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const bold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-    doc.on('data', (chunk: Buffer) => {
-      chunks.push(chunk);
-    });
-    doc.on('end', () => {
-      resolve(Buffer.concat(chunks));
-    });
-    doc.on('error', reject);
+  let y = PAGE_HEIGHT - MARGIN;
 
-    doc.font('Helvetica-Bold').fontSize(22).fillColor('#111827').text(booking.operatorName);
-    doc.moveDown(0.25);
-    doc.font('Helvetica').fontSize(12).fillColor('#6b7280').text('Booking confirmation receipt');
-    doc.moveDown(1.25);
+  page.drawText(booking.operatorName, {
+    x: MARGIN,
+    y,
+    size: 20,
+    font: bold,
+    color: rgb(0.07, 0.09, 0.15),
+  });
+  y -= 28;
 
-    doc
-      .font('Helvetica-Bold')
-      .fontSize(14)
-      .fillColor('#111827')
-      .text(`Reference: ${booking.reference}`);
-    doc.moveDown(0.5);
-    doc
-      .font('Helvetica')
-      .fontSize(11)
-      .fillColor('#374151')
-      .text(`Status: ${BOOKING_STATUS_LABELS[booking.status] ?? booking.status}`);
-    doc.moveDown(1.25);
+  page.drawText('Booking confirmation receipt', {
+    x: MARGIN,
+    y,
+    size: 12,
+    font: regular,
+    color: rgb(0.42, 0.45, 0.5),
+  });
+  y -= 36;
 
-    doc.moveTo(50, doc.y).lineTo(545, doc.y).strokeColor('#e5e7eb').stroke();
-    doc.moveDown(1);
+  page.drawText(`Reference: ${booking.reference}`, {
+    x: MARGIN,
+    y,
+    size: 14,
+    font: bold,
+    color: rgb(0.07, 0.09, 0.15),
+  });
+  y -= 22;
 
-    addRow(doc, 'Passenger', booking.passengerName);
-    addRow(doc, 'Email', booking.passengerEmail);
-    addRow(doc, 'Pickup', `${booking.pickup.address}, ${booking.pickup.postcode}`);
-    addRow(doc, 'Drop-off', `${booking.dropoff.address}, ${booking.dropoff.postcode}`);
-    addRow(
-      doc,
+  page.drawText(`Status: ${BOOKING_STATUS_LABELS[booking.status] ?? booking.status}`, {
+    x: MARGIN,
+    y,
+    size: 11,
+    font: regular,
+    color: rgb(0.22, 0.25, 0.32),
+  });
+  y -= 30;
+
+  const rows: [string, string][] = [
+    ['Passenger', booking.passengerName],
+    ['Email', booking.passengerEmail],
+    ['Pickup', `${booking.pickup.address}, ${booking.pickup.postcode}`],
+    ['Drop-off', `${booking.dropoff.address}, ${booking.dropoff.postcode}`],
+    [
       'When',
       booking.scheduledAt
         ? formatScheduledAt(new Date(booking.scheduledAt))
         : 'As soon as possible',
-    );
-    addRow(doc, 'Fare estimate', formatFare(booking.fareEstimatePence));
-    addRow(doc, 'Accessibility', formatAccessibility(booking.accessibilityRequirements));
-    addRow(doc, 'Notes', booking.notes?.trim() ? booking.notes.trim() : 'None');
-    addRow(
-      doc,
+    ],
+    ['Fare estimate', formatFare(booking.fareEstimatePence)],
+    ['Accessibility', formatAccessibility(booking.accessibilityRequirements)],
+    ['Notes', booking.notes?.trim() ? booking.notes.trim() : 'None'],
+    [
       'Booked on',
       new Date(booking.createdAt).toLocaleString('en-GB', {
         dateStyle: 'full',
         timeStyle: 'short',
         timeZone: 'Europe/London',
       }),
-    );
+    ],
+  ];
 
-    doc.moveDown(1);
-    doc.moveTo(50, doc.y).lineTo(545, doc.y).strokeColor('#e5e7eb').stroke();
-    doc.moveDown(0.75);
-    doc
-      .font('Helvetica')
-      .fontSize(9)
-      .fillColor('#6b7280')
-      .text(
-        'This is your booking confirmation. Final fare may be confirmed by your operator before dispatch. Please quote your reference if you contact us.',
-        { align: 'left' },
-      );
+  for (const [label, value] of rows) {
+    page.drawText(label, {
+      x: MARGIN,
+      y,
+      size: 10,
+      font: bold,
+      color: rgb(0.42, 0.45, 0.5),
+    });
+    y -= 14;
+    y = drawLines(page, regular, [value], y, 11);
+    y -= 8;
+  }
 
-    doc.end();
-  });
+  page.drawText(
+    'This is your booking confirmation. Final fare may be confirmed by your operator before dispatch. Please quote your reference if you contact us.',
+    {
+      x: MARGIN,
+      y: Math.max(MARGIN, y - 10),
+      size: 9,
+      font: regular,
+      color: rgb(0.42, 0.45, 0.5),
+      maxWidth: CONTENT_WIDTH,
+      lineHeight: 12,
+    },
+  );
+
+  const bytes = await pdfDoc.save();
+  return Buffer.from(bytes);
 }
