@@ -23,6 +23,11 @@ export const createBookingSchema = z.object({
   source: z.enum(['WEB', 'MOBILE', 'PHONE', 'OPERATOR', 'API']).default('WEB'),
 });
 
+/** Guest web bookings — email required for confirmation and trip link. */
+export const publicCreateBookingSchema = createBookingSchema.extend({
+  passengerEmail: z.string().trim().email(),
+});
+
 export const updateBookingStatusSchema = z.object({
   status: z.enum([
     'CONFIRMED',
@@ -43,3 +48,4 @@ export const assignDriverSchema = z.object({
 });
 
 export type CreateBookingInput = z.infer<typeof createBookingSchema>;
+export type PublicCreateBookingInput = z.infer<typeof publicCreateBookingSchema>;

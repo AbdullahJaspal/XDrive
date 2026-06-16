@@ -370,6 +370,7 @@ model Booking {
   passengerName           String   @map("passenger_name")
   passengerPhone          String   @map("passenger_phone")
   passengerEmail          String?  @map("passenger_email")
+  guestAccessToken        String?  @unique @map("guest_access_token")
   accessibilityRequirements AccessibilityRequirement[] @map("accessibility_requirements")
   notes                   String?
   fareEstimatePence       Int?     @map("fare_estimate_pence")

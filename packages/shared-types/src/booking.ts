@@ -52,3 +52,23 @@ export interface BookingSummary {
   fareEstimatePence: number | null;
   createdAt: string;
 }
+
+/** Guest-facing booking details (no internal IDs). */
+export interface PublicBookingView {
+  reference: string;
+  status: BookingStatus;
+  operatorName: string;
+  passengerName: string;
+  passengerEmail: string;
+  pickup: GeoPoint;
+  dropoff: GeoPoint;
+  scheduledAt: string | null;
+  fareEstimatePence: number | null;
+  accessibilityRequirements: AccessibilityRequirement[];
+  notes: string | null;
+  createdAt: string;
+}
+
+export interface PublicBookingCreated extends BookingSummary {
+  guestViewToken: string;
+}

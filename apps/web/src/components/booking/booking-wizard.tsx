@@ -4,9 +4,13 @@ import { ArrowLeft, ArrowRight, Check, Loader2, MapPin } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
+import { BookingFareEstimate } from '@/components/booking/booking-fare-estimate';
 import { BookingField } from '@/components/booking/booking-field';
 import { BookingMapPreview } from '@/components/booking/booking-map-preview';
+import { BookingMapsProvider } from '@/components/booking/booking-maps-provider';
+import { UkAddressField } from '@/components/booking/uk-address-field';
 import { Button } from '@/components/ui/button';
+import { DateTimePicker } from '@/components/ui/datetime-picker';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -24,8 +28,9 @@ import {
   validateFullBooking,
   validateJourneyStep,
 } from '@/lib/booking/validation';
+import { formatPenceGbp, type FareEstimate } from '@/lib/booking/fare';
 import { cn } from '@/lib/utils';
-import type { BookingSummary } from '@uk-phv/shared-types';
+import type { PublicBookingCreated } from '@uk-phv/shared-types';
 
 const STEPS = ['Journey', 'Schedule', 'Details', 'Confirm'] as const;
 
@@ -62,8 +67,13 @@ export function BookingWizard({ initial }: BookingWizardProps) {
 
   const [pickupAddress, setPickupAddress] = useState(initial?.pickup ?? '');
   const [pickupPostcode, setPickupPostcode] = useState('');
+  const [pickupLat, setPickupLat] = useState<number | null>(null);
+  const [pickupLng, setPickupLng] = useState<number | null>(null);
+  const [pickupIsAirport, setPickupIsAirport] = useState(false);
   const [dropoffAddress, setDropoffAddress] = useState(initial?.dropoff ?? '');
   const [dropoffPostcode, setDropoffPostcode] = useState('');
+  const [dropoffLat, setDropoffLat] = useState<number | null>(null);
+  const [dropoffLng, setDropoffLng] = useState<number | null>(null);
   const [scheduledAt, setScheduledAt] = useState('');
   const [passengerName, setPassengerName] = useState('');
   const [passengerPhone, setPassengerPhone] = useState('');
@@ -72,14 +82,19 @@ export function BookingWizard({ initial }: BookingWizardProps) {
   const [accessibility, setAccessibility] = useState<
     CreateBookingInput['accessibilityRequirements']
   >([]);
+  const [fareEstimate, setFareEstimate] = useState<FareEstimate | null>(null);
 
   const progress = ((step + 1) / STEPS.length) * 100;
 
   const formFields: BookingFormFields = {
     pickupAddress,
     pickupPostcode,
+    pickupLat,
+    pickupLng,
     dropoffAddress,
     dropoffPostcode,
+    dropoffLat,
+    dropoffLng,
     scheduledAt,
     passengerName,
     passengerPhone,
@@ -144,12 +159,12 @@ export function BookingWizard({ initial }: BookingWizardProps) {
     void (async () => {
       try {
         const token = getAccessToken();
-        const booking = await apiRequest<BookingSummary>('/public/bookings', {
+        const booking = await apiRequest<PublicBookingCreated>('/public/bookings', {
           method: 'POST',
           token: token ?? undefined,
           body: JSON.stringify(result.data),
         });
-        router.push(`/book/confirmation?ref=${encodeURIComponent(booking.reference)}`);
+        router.push(`/book/trip/${booking.guestViewToken}`);
       } catch (err) {
         if (err instanceof ApiClientError && err.details?.length) {
           const errors = apiDetailsToFieldErrors(err.details);
@@ -187,91 +202,110 @@ export function BookingWizard({ initial }: BookingWizardProps) {
       </div>
 
       {step === 0 ? (
-        <div className="space-y-6">
-          <div>
-            <h2 className="font-display text-3xl font-medium">Where are you travelling?</h2>
-            <p className="text-muted-foreground mt-2">Pickup and destination details</p>
-          </div>
-          <div className="space-y-4">
-            <BookingField
-              id="pickup-address"
-              label="Pickup address"
-              labelClassName="label-caps"
-              error={fieldErrors.pickupAddress}
-            >
-              <Input
-                value={pickupAddress}
-                onChange={(e) => {
-                  setPickupAddress(e.target.value);
+        <BookingMapsProvider>
+          <div className="space-y-6">
+            <div>
+              <h2 className="font-display text-3xl font-medium">Where are you travelling?</h2>
+              <p className="text-muted-foreground mt-2">Pickup and destination details</p>
+            </div>
+            <div className="space-y-4">
+              <UkAddressField
+                id="pickup"
+                label="Pickup address"
+                labelClassName="label-caps"
+                address={pickupAddress}
+                postcode={pickupPostcode}
+                lat={pickupLat}
+                lng={pickupLng}
+                addressError={fieldErrors.pickupAddress}
+                postcodeError={fieldErrors.pickupPostcode}
+                addressPlaceholder="Street address or postcode"
+                postcodePlaceholder="WV1 1AA"
+                postcodeHint="UK postcode format, e.g. WV1 1AA"
+                onAddressChange={setPickupAddress}
+                onPostcodeChange={setPickupPostcode}
+                onLocationSelect={(location) => {
+                  setPickupAddress(location.address);
+                  setPickupPostcode(location.postcode);
+                  setPickupLat(location.lat);
+                  setPickupLng(location.lng);
+                  setPickupIsAirport(location.isAirport);
+                }}
+                onClearCoordinates={() => {
+                  setPickupLat(null);
+                  setPickupLng(null);
+                  setPickupPostcode('');
+                  setPickupIsAirport(false);
+                  setFareEstimate(null);
+                }}
+                clearAddressError={() => {
                   clearFieldError('pickupAddress');
                 }}
-                placeholder="Street address"
-              />
-            </BookingField>
-            <BookingField
-              id="pickup-postcode"
-              label="Pickup postcode"
-              labelClassName="label-caps"
-              error={fieldErrors.pickupPostcode}
-              hint="UK postcode format, e.g. WV1 1AA"
-            >
-              <Input
-                value={pickupPostcode}
-                onChange={(e) => {
-                  setPickupPostcode(e.target.value);
+                clearPostcodeError={() => {
                   clearFieldError('pickupPostcode');
                 }}
-                placeholder="WV1 1AA"
-                className="uppercase"
-                autoComplete="postal-code"
               />
-            </BookingField>
-            <div className="text-muted-foreground/50 my-6 flex items-center gap-3">
-              <div className="bg-border h-px flex-1" />
-              <MapPin className="text-luxury h-4 w-4" />
-              <div className="bg-border h-px flex-1" />
-            </div>
-            <BookingField
-              id="dropoff-address"
-              label="Drop-off address"
-              labelClassName="label-caps"
-              error={fieldErrors.dropoffAddress}
-            >
-              <Input
-                value={dropoffAddress}
-                onChange={(e) => {
-                  setDropoffAddress(e.target.value);
+              <div className="text-muted-foreground/50 my-6 flex items-center gap-3">
+                <div className="bg-border h-px flex-1" />
+                <MapPin className="text-luxury h-4 w-4" />
+                <div className="bg-border h-px flex-1" />
+              </div>
+              <UkAddressField
+                id="dropoff"
+                label="Drop-off address"
+                labelClassName="label-caps"
+                address={dropoffAddress}
+                postcode={dropoffPostcode}
+                lat={dropoffLat}
+                lng={dropoffLng}
+                addressError={fieldErrors.dropoffAddress}
+                postcodeError={fieldErrors.dropoffPostcode}
+                addressPlaceholder="Destination or postcode"
+                postcodePlaceholder="B26 3QJ"
+                postcodeHint="UK postcode format, e.g. B26 3QJ"
+                onAddressChange={setDropoffAddress}
+                onPostcodeChange={setDropoffPostcode}
+                onLocationSelect={(location) => {
+                  setDropoffAddress(location.address);
+                  setDropoffPostcode(location.postcode);
+                  setDropoffLat(location.lat);
+                  setDropoffLng(location.lng);
+                }}
+                onClearCoordinates={() => {
+                  setDropoffLat(null);
+                  setDropoffLng(null);
+                  setDropoffPostcode('');
+                  setFareEstimate(null);
+                }}
+                clearAddressError={() => {
                   clearFieldError('dropoffAddress');
                 }}
-                placeholder="Destination"
-              />
-            </BookingField>
-            <BookingField
-              id="dropoff-postcode"
-              label="Drop-off postcode"
-              labelClassName="label-caps"
-              error={fieldErrors.dropoffPostcode}
-              hint="UK postcode format, e.g. B26 3QJ"
-            >
-              <Input
-                value={dropoffPostcode}
-                onChange={(e) => {
-                  setDropoffPostcode(e.target.value);
+                clearPostcodeError={() => {
                   clearFieldError('dropoffPostcode');
                 }}
-                placeholder="B26 3QJ"
-                className="uppercase"
-                autoComplete="postal-code"
               />
-            </BookingField>
+            </div>
+            <BookingMapPreview
+              pickupAddress={pickupAddress}
+              pickupPostcode={pickupPostcode}
+              pickupLat={pickupLat}
+              pickupLng={pickupLng}
+              dropoffAddress={dropoffAddress}
+              dropoffPostcode={dropoffPostcode}
+              dropoffLat={dropoffLat}
+              dropoffLng={dropoffLng}
+            />
+            <BookingFareEstimate
+              pickupAddress={pickupAddress}
+              pickupIsAirport={pickupIsAirport}
+              pickupLat={pickupLat}
+              pickupLng={pickupLng}
+              dropoffLat={dropoffLat}
+              dropoffLng={dropoffLng}
+              onFareChange={setFareEstimate}
+            />
           </div>
-          <BookingMapPreview
-            pickupAddress={pickupAddress}
-            pickupPostcode={pickupPostcode}
-            dropoffAddress={dropoffAddress}
-            dropoffPostcode={dropoffPostcode}
-          />
-        </div>
+        </BookingMapsProvider>
       ) : null}
 
       {step === 1 ? (
@@ -286,14 +320,13 @@ export function BookingWizard({ initial }: BookingWizardProps) {
             labelClassName="label-caps"
             error={fieldErrors.scheduledAt}
           >
-            <Input
-              type="datetime-local"
+            <DateTimePicker
               value={scheduledAt}
-              onChange={(e) => {
-                setScheduledAt(e.target.value);
+              onChange={(nextValue) => {
+                setScheduledAt(nextValue);
                 clearFieldError('scheduledAt');
               }}
-              min={new Date().toISOString().slice(0, 16)}
+              min={new Date()}
               className="max-w-sm"
             />
           </BookingField>
@@ -340,17 +373,20 @@ export function BookingWizard({ initial }: BookingWizardProps) {
             </BookingField>
             <BookingField
               id="passenger-email"
-              label="Email (optional)"
+              label="Email"
               labelClassName="label-caps"
               error={fieldErrors.passengerEmail}
             >
               <Input
                 type="email"
+                required
+                autoComplete="email"
                 value={passengerEmail}
                 onChange={(e) => {
                   setPassengerEmail(e.target.value);
                   clearFieldError('passengerEmail');
                 }}
+                placeholder="for confirmation and updates"
               />
             </BookingField>
           </div>
@@ -421,6 +457,19 @@ export function BookingWizard({ initial }: BookingWizardProps) {
                   : 'As soon as possible'}
               </dd>
             </div>
+            {fareEstimate ? (
+              <div className="grid gap-1 p-4 sm:grid-cols-3">
+                <dt className="label-caps">Fare estimate</dt>
+                <dd className="font-medium sm:col-span-2">
+                  {formatPenceGbp(fareEstimate.totalPence)}
+                  {fareEstimate.airportFeePence > 0 ? (
+                    <span className="text-muted-foreground block text-xs font-normal">
+                      Includes {formatPenceGbp(fareEstimate.airportFeePence)} airport parking fee
+                    </span>
+                  ) : null}
+                </dd>
+              </div>
+            ) : null}
             <div className="grid gap-1 p-4 sm:grid-cols-3">
               <dt className="label-caps">Passenger</dt>
               <dd className="sm:col-span-2">

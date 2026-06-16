@@ -3,6 +3,7 @@ import type { ZodError } from 'zod';
 
 import type { BookingFormFields } from '@/lib/booking/payload';
 import { parseCreateBookingPayload } from '@/lib/booking/payload';
+import { GOOGLE_MAPS_ENABLED } from '@/lib/booking/uk-address';
 
 export type BookingFormFieldKey =
   | 'pickupAddress'
@@ -83,14 +84,33 @@ export function hasFieldErrors(errors: BookingFieldErrors): boolean {
   return Object.keys(errors).length > 0;
 }
 
+function journeyCoordinateErrors(fields: BookingFormFields): BookingFieldErrors {
+  if (!GOOGLE_MAPS_ENABLED) return {};
+
+  const errors: BookingFieldErrors = {};
+  if (fields.pickupAddress.trim() && (fields.pickupLat == null || fields.pickupLng == null)) {
+    errors.pickupAddress = 'Select a UK address from the suggestions';
+  }
+  if (fields.dropoffAddress.trim() && (fields.dropoffLat == null || fields.dropoffLng == null)) {
+    errors.dropoffAddress = 'Select a UK address from the suggestions';
+  }
+  return errors;
+}
+
 export function validateBookingFields(
   fields: BookingFormFields,
   keys: BookingFormFieldKey[],
 ): { ok: true } | { ok: false; errors: BookingFieldErrors } {
   const parsed = parseCreateBookingPayload(fields);
-  if (parsed.success) return { ok: true };
+  const coordinateErrors = keys.some((key) => JOURNEY_FIELD_KEYS.includes(key))
+    ? journeyCoordinateErrors(fields)
+    : {};
 
-  const all = zodErrorToFieldErrors(parsed.error);
+  if (parsed.success && !hasFieldErrors(coordinateErrors)) return { ok: true };
+
+  const all = parsed.success
+    ? coordinateErrors
+    : { ...zodErrorToFieldErrors(parsed.error), ...coordinateErrors };
   const errors = pickFieldErrors(all, keys);
   if (!hasFieldErrors(errors)) return { ok: true };
   return { ok: false, errors };
@@ -106,6 +126,14 @@ export function validateDetailsStep(fields: BookingFormFields) {
 
 export function validateFullBooking(fields: BookingFormFields) {
   const parsed = parseCreateBookingPayload(fields);
-  if (parsed.success) return { ok: true as const, data: parsed.data };
-  return { ok: false as const, errors: zodErrorToFieldErrors(parsed.error) };
+  const coordinateErrors = journeyCoordinateErrors(fields);
+
+  if (parsed.success && !hasFieldErrors(coordinateErrors)) {
+    return { ok: true as const, data: parsed.data };
+  }
+
+  const errors = parsed.success
+    ? coordinateErrors
+    : { ...zodErrorToFieldErrors(parsed.error), ...coordinateErrors };
+  return { ok: false as const, errors };
 }

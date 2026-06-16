@@ -1,12 +1,11 @@
 'use client';
 
-import { APIProvider, Map, useMap, useMapsLibrary } from '@vis.gl/react-google-maps';
+import { Map, useMap, useMapsLibrary } from '@vis.gl/react-google-maps';
 import { useEffect, useMemo, useState } from 'react';
 
 import { DEFAULT_COORDS } from '@/lib/booking/defaults';
+import { GOOGLE_MAPS_ENABLED } from '@/lib/booking/uk-address';
 import { cn } from '@/lib/utils';
-
-const MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 const ROUTE_COLOR = '#C9A962';
 
 type LatLng = google.maps.LatLngLiteral;
@@ -14,8 +13,12 @@ type LatLng = google.maps.LatLngLiteral;
 interface BookingMapPreviewProps {
   pickupAddress: string;
   pickupPostcode: string;
+  pickupLat?: number | null;
+  pickupLng?: number | null;
   dropoffAddress: string;
   dropoffPostcode: string;
+  dropoffLat?: number | null;
+  dropoffLng?: number | null;
   className?: string;
 }
 
@@ -54,18 +57,30 @@ function geocodeAddress(geocoder: google.maps.Geocoder, address: string): Promis
 function BookingMapMarkers({
   pickupQuery,
   dropoffQuery,
+  pickupCoords,
+  dropoffCoords,
 }: {
   pickupQuery: string | null;
   dropoffQuery: string | null;
+  pickupCoords: LatLng | null;
+  dropoffCoords: LatLng | null;
 }) {
   const map = useMap();
   const routesLibrary = useMapsLibrary('routes');
-  const [pickupPos, setPickupPos] = useState<LatLng | null>(null);
-  const [dropoffPos, setDropoffPos] = useState<LatLng | null>(null);
+  const [pickupPos, setPickupPos] = useState<LatLng | null>(pickupCoords);
+  const [dropoffPos, setDropoffPos] = useState<LatLng | null>(dropoffCoords);
 
   useEffect(() => {
-    if (!pickupQuery) {
-      setPickupPos(null);
+    setPickupPos(pickupCoords);
+  }, [pickupCoords]);
+
+  useEffect(() => {
+    setDropoffPos(dropoffCoords);
+  }, [dropoffCoords]);
+
+  useEffect(() => {
+    if (pickupCoords || !pickupQuery) {
+      if (!pickupCoords) setPickupPos(null);
       return;
     }
 
@@ -79,11 +94,11 @@ function BookingMapMarkers({
     return () => {
       cancelled = true;
     };
-  }, [pickupQuery]);
+  }, [pickupQuery, pickupCoords]);
 
   useEffect(() => {
-    if (!dropoffQuery) {
-      setDropoffPos(null);
+    if (dropoffCoords || !dropoffQuery) {
+      if (!dropoffCoords) setDropoffPos(null);
       return;
     }
 
@@ -97,7 +112,7 @@ function BookingMapMarkers({
     return () => {
       cancelled = true;
     };
-  }, [dropoffQuery]);
+  }, [dropoffQuery, dropoffCoords]);
 
   useEffect(() => {
     if (!map) return;
@@ -207,8 +222,12 @@ function BookingMapMarkers({
 export function BookingMapPreview({
   pickupAddress,
   pickupPostcode,
+  pickupLat,
+  pickupLng,
   dropoffAddress,
   dropoffPostcode,
+  dropoffLat,
+  dropoffLng,
   className,
 }: BookingMapPreviewProps) {
   const pickupQuery = useMemo(
@@ -220,10 +239,20 @@ export function BookingMapPreview({
     [dropoffAddress, dropoffPostcode],
   );
 
-  const debouncedPickup = useDebouncedValue(pickupQuery, 600);
-  const debouncedDropoff = useDebouncedValue(dropoffQuery, 600);
+  const pickupCoords = useMemo<LatLng | null>(() => {
+    if (pickupLat == null || pickupLng == null) return null;
+    return { lat: pickupLat, lng: pickupLng };
+  }, [pickupLat, pickupLng]);
 
-  if (!MAPS_API_KEY) {
+  const dropoffCoords = useMemo<LatLng | null>(() => {
+    if (dropoffLat == null || dropoffLng == null) return null;
+    return { lat: dropoffLat, lng: dropoffLng };
+  }, [dropoffLat, dropoffLng]);
+
+  const debouncedPickup = useDebouncedValue(pickupCoords ? null : pickupQuery, 600);
+  const debouncedDropoff = useDebouncedValue(dropoffCoords ? null : dropoffQuery, 600);
+
+  if (!GOOGLE_MAPS_ENABLED) {
     return (
       <div
         className={cn(
@@ -240,21 +269,24 @@ export function BookingMapPreview({
 
   return (
     <div className={cn('surface-elevated overflow-hidden rounded-sm', className)}>
-      <APIProvider apiKey={MAPS_API_KEY} libraries={['routes']}>
-        <div className="aspect-[2/1] w-full">
-          <Map
-            defaultCenter={DEFAULT_COORDS}
-            defaultZoom={12}
-            gestureHandling="cooperative"
-            disableDefaultUI
-            zoomControl
-            reuseMaps
-            style={{ width: '100%', height: '100%' }}
-          >
-            <BookingMapMarkers pickupQuery={debouncedPickup} dropoffQuery={debouncedDropoff} />
-          </Map>
-        </div>
-      </APIProvider>
+      <div className="aspect-[2/1] w-full">
+        <Map
+          defaultCenter={DEFAULT_COORDS}
+          defaultZoom={12}
+          gestureHandling="cooperative"
+          disableDefaultUI
+          zoomControl
+          reuseMaps
+          style={{ width: '100%', height: '100%' }}
+        >
+          <BookingMapMarkers
+            pickupQuery={debouncedPickup}
+            dropoffQuery={debouncedDropoff}
+            pickupCoords={pickupCoords}
+            dropoffCoords={dropoffCoords}
+          />
+        </Map>
+      </div>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import type { NextRequest } from 'next/server';
 
 import { UserRole } from '@uk-phv/shared-types';
-import { createBookingSchema } from '@uk-phv/validation';
+import { publicCreateBookingSchema } from '@uk-phv/validation';
 
 import { authenticateRequest } from '@/lib/server/auth/session';
 import { handleApi, mapZodErrors } from '@/lib/server/api/response';
@@ -14,7 +14,7 @@ export const runtime = 'nodejs';
 export async function POST(request: NextRequest) {
   return handleApi(async () => {
     const body: unknown = await request.json();
-    const parsed = createBookingSchema.safeParse(body);
+    const parsed = publicCreateBookingSchema.safeParse(body);
     if (!parsed.success) {
       throw AppError.validation('Invalid booking payload', mapZodErrors(parsed.error));
     }

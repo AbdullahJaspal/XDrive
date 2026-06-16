@@ -1,20 +1,64 @@
 import type { Booking, BookingStatus } from '@prisma/client';
 import { randomBytes } from 'crypto';
 
-import type { BookingSummary } from '@uk-phv/shared-types';
+import type { BookingSummary, PublicBookingView } from '@uk-phv/shared-types';
 import type { CreateBookingInput } from '@uk-phv/validation';
 
 import { getBookingRetentionYears } from '../config';
+import { sendBookingConfirmationToPassenger } from '../emails/booking-confirmation';
 import { sendBookingCreatedNotification } from '../emails/booking-notification';
 import { prisma } from '../db';
 import { AppError } from '../errors/app.error';
 import { emitToDriver, emitToOperator } from '../realtime';
+import { calculateFareEstimate, isAirportPickup } from '@/lib/booking/fare';
+import { getDrivingRoute } from './routing.service';
 import { auditLogsService } from './audit-logs.service';
+
+export type BookingCreateResult = BookingSummary & { guestViewToken?: string };
 
 function generateReference(): string {
   const date = new Date().toISOString().slice(0, 10).replace(/-/g, '');
   const suffix = randomBytes(3).toString('hex').toUpperCase();
   return `PHV-${date}-${suffix}`;
+}
+
+function generateGuestAccessToken(): string {
+  return randomBytes(32).toString('hex');
+}
+
+function toPublicView(
+  booking: Booking,
+  operator: { tradingName: string | null; legalName: string },
+): PublicBookingView {
+  if (!booking.passengerEmail) {
+    throw AppError.notFound('Booking', booking.reference);
+  }
+
+  return {
+    reference: booking.reference,
+    status: booking.status as PublicBookingView['status'],
+    operatorName: operator.tradingName ?? operator.legalName,
+    passengerName: booking.passengerName,
+    passengerEmail: booking.passengerEmail,
+    pickup: {
+      lat: booking.pickupLat,
+      lng: booking.pickupLng,
+      address: booking.pickupAddress,
+      postcode: booking.pickupPostcode,
+    },
+    dropoff: {
+      lat: booking.dropoffLat,
+      lng: booking.dropoffLng,
+      address: booking.dropoffAddress,
+      postcode: booking.dropoffPostcode,
+    },
+    scheduledAt: booking.scheduledAt?.toISOString() ?? null,
+    fareEstimatePence: booking.fareEstimatePence,
+    accessibilityRequirements:
+      booking.accessibilityRequirements as PublicBookingView['accessibilityRequirements'],
+    notes: booking.notes,
+    createdAt: booking.createdAt.toISOString(),
+  };
 }
 
 function toSummary(booking: Booking): BookingSummary {
@@ -65,6 +109,17 @@ export const bookingsService = {
     });
     if (!operator) throw AppError.notFound('Operator', operatorId);
 
+    const route = await getDrivingRoute(
+      { lat: input.pickup.lat, lng: input.pickup.lng },
+      { lat: input.dropoff.lat, lng: input.dropoff.lng },
+    );
+
+    const pickupIsAirport = isAirportPickup(input.pickup.address);
+    const fare = route ? calculateFareEstimate(route.distanceMetres, pickupIsAirport) : null;
+
+    const guestAccessToken =
+      input.source === 'WEB' && input.passengerEmail ? generateGuestAccessToken() : undefined;
+
     const booking = await prisma.booking.create({
       data: {
         operator: { connect: { id: operatorId } },
@@ -83,8 +138,12 @@ export const bookingsService = {
         passengerName: input.passengerName,
         passengerPhone: input.passengerPhone,
         passengerEmail: input.passengerEmail,
+        guestAccessToken,
         accessibilityRequirements: input.accessibilityRequirements,
         notes: input.notes,
+        distanceMetres: route?.distanceMetres,
+        durationSeconds: route?.durationSeconds,
+        fareEstimatePence: fare?.totalPence,
         retentionExpiresAt,
         ...(customerId ? { customerId } : {}),
       },
@@ -109,11 +168,32 @@ export const bookingsService = {
 
     await emitToOperator(operatorId, 'booking:created', toSummary(booking));
 
-    void sendBookingCreatedNotification(booking, operator).catch((error: unknown) => {
-      console.error('Failed to send booking notification email', error);
-    });
+    void (async () => {
+      try {
+        await sendBookingCreatedNotification(booking, operator);
+        if (booking.guestAccessToken) {
+          await sendBookingConfirmationToPassenger(booking, operator, booking.guestAccessToken);
+        }
+      } catch (error: unknown) {
+        console.error('Failed to send booking emails', error);
+      }
+    })();
 
-    return toSummary(booking);
+    return {
+      ...toSummary(booking),
+      ...(booking.guestAccessToken ? { guestViewToken: booking.guestAccessToken } : {}),
+    };
+  },
+
+  async findPublicViewByToken(token: string): Promise<PublicBookingView> {
+    const booking = await prisma.booking.findUnique({
+      where: { guestAccessToken: token },
+      include: {
+        operator: { select: { tradingName: true, legalName: true } },
+      },
+    });
+    if (!booking) throw AppError.notFound('Booking', token);
+    return toPublicView(booking, booking.operator);
   },
 
   async findById(id: string) {
