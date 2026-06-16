@@ -7,6 +7,7 @@ import { useState } from 'react';
 
 import { AdminShell } from '@/components/layout/admin-shell';
 import { PageContainer } from '@/components/layout/page-container';
+import { UkAddressField } from '@/components/booking/uk-address-field';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,11 +18,20 @@ import { getAccessToken } from '@/lib/auth/session-client';
 import { apiRequest } from '@/lib/api/client';
 import { readFormString } from '@/lib/form-data';
 import type { BookingSummary } from '@uk-phv/shared-types';
+import type { UkLocation } from '@/lib/booking/uk-address';
 
 export default function AdminNewBookingPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pickupAddress, setPickupAddress] = useState('');
+  const [pickupPostcode, setPickupPostcode] = useState('');
+  const [pickupLat, setPickupLat] = useState<number | null>(null);
+  const [pickupLng, setPickupLng] = useState<number | null>(null);
+  const [dropoffAddress, setDropoffAddress] = useState('');
+  const [dropoffPostcode, setDropoffPostcode] = useState('');
+  const [dropoffLat, setDropoffLat] = useState<number | null>(null);
+  const [dropoffLng, setDropoffLng] = useState<number | null>(null);
 
   function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -29,13 +39,19 @@ export default function AdminNewBookingPage() {
     if (!token) return;
 
     const form = new FormData(e.currentTarget);
-    const pickupAddress = readFormString(form, 'pickupAddress');
-    const pickupPostcode = readFormString(form, 'pickupPostcode');
-    const dropoffAddress = readFormString(form, 'dropoffAddress');
-    const dropoffPostcode = readFormString(form, 'dropoffPostcode');
     const passengerName = readFormString(form, 'passengerName');
     const passengerPhone = readFormString(form, 'passengerPhone');
     const notes = readFormString(form, 'notes');
+
+    if (
+      !pickupAddress.trim() ||
+      !pickupPostcode.trim() ||
+      !dropoffAddress.trim() ||
+      !dropoffPostcode.trim()
+    ) {
+      setError('Please provide pickup and dropoff addresses.');
+      return;
+    }
 
     setLoading(true);
     setError(null);
@@ -51,14 +67,14 @@ export default function AdminNewBookingPage() {
         pickup: {
           address: pickupAddress,
           postcode: pickupPostcode,
-          lat: 52.48,
-          lng: -1.9,
+          lat: pickupLat ?? 52.48,
+          lng: pickupLng ?? -1.9,
         },
         dropoff: {
           address: dropoffAddress,
           postcode: dropoffPostcode,
-          lat: 52.45,
-          lng: -1.73,
+          lat: dropoffLat ?? 52.45,
+          lng: dropoffLng ?? -1.73,
         },
         accessibilityRequirements: [],
       }),
@@ -69,7 +85,9 @@ export default function AdminNewBookingPage() {
       .catch((err: unknown) => {
         setError(err instanceof Error ? err.message : 'Could not create booking');
       })
-      .finally(() => { setLoading(false); });
+      .finally(() => {
+        setLoading(false);
+      });
   }
 
   return (
@@ -87,13 +105,17 @@ export default function AdminNewBookingPage() {
             Phone booking
           </Badge>
           <h1 className="text-3xl font-bold">New booking</h1>
-          <p className="mt-1 text-muted-foreground">Create a job for dispatch (coordinates use dev defaults)</p>
+          <p className="text-muted-foreground mt-1">
+            Create a job for dispatch using selected UK addresses and coordinates
+          </p>
         </div>
 
         <Card className="surface-elevated border-0">
           <CardHeader>
             <CardTitle>Trip & passenger</CardTitle>
-            <CardDescription>Booking starts as requested — confirm then assign on the next screen</CardDescription>
+            <CardDescription>
+              Booking starts as requested — confirm then assign on the next screen
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -103,30 +125,74 @@ export default function AdminNewBookingPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="passengerPhone">Phone</Label>
-                <Input id="passengerPhone" name="passengerPhone" type="tel" required placeholder="07700900123" />
+                <Input
+                  id="passengerPhone"
+                  name="passengerPhone"
+                  type="tel"
+                  required
+                  placeholder="07700900123"
+                />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="pickupAddress">Pickup address</Label>
-                <Input id="pickupAddress" name="pickupAddress" required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="pickupPostcode">Pickup postcode</Label>
-                <Input id="pickupPostcode" name="pickupPostcode" required placeholder="B1 1AA" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="dropoffAddress">Dropoff address</Label>
-                <Input id="dropoffAddress" name="dropoffAddress" required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="dropoffPostcode">Dropoff postcode</Label>
-                <Input id="dropoffPostcode" name="dropoffPostcode" required placeholder="B26 3QJ" />
-              </div>
+              <UkAddressField
+                id="pickup"
+                label="Pickup address"
+                address={pickupAddress}
+                postcode={pickupPostcode}
+                lat={pickupLat}
+                lng={pickupLng}
+                onAddressChange={setPickupAddress}
+                onPostcodeChange={setPickupPostcode}
+                onLocationSelect={(location: UkLocation) => {
+                  setPickupAddress(location.address);
+                  setPickupPostcode(location.postcode);
+                  setPickupLat(location.lat);
+                  setPickupLng(location.lng);
+                }}
+                onClearCoordinates={() => {
+                  setPickupLat(null);
+                  setPickupLng(null);
+                }}
+                clearAddressError={() => {
+                  /* no field-level errors */
+                }}
+                clearPostcodeError={() => {
+                  /* no field-level errors */
+                }}
+                postcodeHint="Auto-filled from selected address"
+              />
+              <UkAddressField
+                id="dropoff"
+                label="Dropoff address"
+                address={dropoffAddress}
+                postcode={dropoffPostcode}
+                lat={dropoffLat}
+                lng={dropoffLng}
+                onAddressChange={setDropoffAddress}
+                onPostcodeChange={setDropoffPostcode}
+                onLocationSelect={(location: UkLocation) => {
+                  setDropoffAddress(location.address);
+                  setDropoffPostcode(location.postcode);
+                  setDropoffLat(location.lat);
+                  setDropoffLng(location.lng);
+                }}
+                onClearCoordinates={() => {
+                  setDropoffLat(null);
+                  setDropoffLng(null);
+                }}
+                clearAddressError={() => {
+                  /* no field-level errors */
+                }}
+                clearPostcodeError={() => {
+                  /* no field-level errors */
+                }}
+                postcodeHint="Auto-filled from selected address"
+              />
               <div className="space-y-2">
                 <Label htmlFor="notes">Notes</Label>
                 <Textarea id="notes" name="notes" rows={2} />
               </div>
               {error ? (
-                <p className="text-sm text-destructive" role="alert">
+                <p className="text-destructive text-sm" role="alert">
                   {error}
                 </p>
               ) : null}

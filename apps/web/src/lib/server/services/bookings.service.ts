@@ -1,12 +1,20 @@
 import type { Booking, BookingStatus } from '@prisma/client';
 import { randomBytes } from 'crypto';
 
-import type { BookingSummary, PublicBookingView } from '@uk-phv/shared-types';
+import type {
+  BookingDetail,
+  BookingSummary,
+  BookingStatusHistoryEntry,
+  PublicBookingView,
+} from '@uk-phv/shared-types';
 import type { CreateBookingInput } from '@uk-phv/validation';
 
 import { getBookingRetentionYears } from '../config';
 import { buildPublicBookingView } from '../booking-public-view';
-import { sendBookingConfirmationToPassenger } from '../emails/booking-confirmation';
+import {
+  sendBookingConfirmedToPassenger,
+  sendBookingRequestReceivedToPassenger,
+} from '../emails/booking-confirmation';
 import { sendBookingCreatedNotification } from '../emails/booking-notification';
 import { prisma } from '../db';
 import { AppError } from '../errors/app.error';
@@ -16,6 +24,19 @@ import { getDrivingRoute } from './routing.service';
 import { auditLogsService } from './audit-logs.service';
 
 export type BookingCreateResult = BookingSummary & { guestViewToken?: string };
+
+const STATUS_TRANSITIONS: Record<BookingStatus, BookingStatus[]> = {
+  DRAFT: ['REQUESTED', 'CANCELLED'],
+  REQUESTED: ['CONFIRMED', 'CANCELLED', 'NO_SHOW'],
+  CONFIRMED: ['DISPATCHED', 'CANCELLED', 'NO_SHOW'],
+  DISPATCHED: ['DRIVER_EN_ROUTE', 'CANCELLED', 'NO_SHOW'],
+  DRIVER_EN_ROUTE: ['ARRIVED', 'CANCELLED', 'NO_SHOW'],
+  ARRIVED: ['IN_PROGRESS', 'CANCELLED', 'NO_SHOW'],
+  IN_PROGRESS: ['COMPLETED', 'CANCELLED', 'NO_SHOW'],
+  COMPLETED: [],
+  CANCELLED: [],
+  NO_SHOW: [],
+};
 
 function generateReference(): string {
   const date = new Date().toISOString().slice(0, 10).replace(/-/g, '');
@@ -54,6 +75,22 @@ function toSummary(booking: Booking): BookingSummary {
     vehicleId: booking.vehicleId,
     fareEstimatePence: booking.fareEstimatePence,
     createdAt: booking.createdAt.toISOString(),
+  };
+}
+
+function toStatusHistoryEntry(entry: {
+  id: string;
+  fromStatus: BookingStatus | null;
+  toStatus: BookingStatus;
+  reason: string | null;
+  createdAt: Date;
+}): BookingStatusHistoryEntry {
+  return {
+    id: entry.id,
+    fromStatus: entry.fromStatus as BookingStatusHistoryEntry['fromStatus'],
+    toStatus: entry.toStatus as BookingStatusHistoryEntry['toStatus'],
+    reason: entry.reason,
+    createdAt: entry.createdAt.toISOString(),
   };
 }
 
@@ -138,7 +175,7 @@ export const bookingsService = {
       try {
         await sendBookingCreatedNotification(booking, operator);
         if (booking.guestAccessToken) {
-          await sendBookingConfirmationToPassenger(booking, operator, booking.guestAccessToken);
+          await sendBookingRequestReceivedToPassenger(booking, operator, booking.guestAccessToken);
         }
       } catch (error: unknown) {
         console.error('Failed to send booking emails', error);
@@ -162,10 +199,25 @@ export const bookingsService = {
     return buildPublicBookingView(booking, booking.operator);
   },
 
-  async findById(id: string) {
-    const booking = await prisma.booking.findUnique({ where: { id } });
+  async findById(id: string): Promise<BookingDetail> {
+    const booking = await prisma.booking.findUnique({
+      where: { id },
+      include: {
+        statusHistory: {
+          orderBy: { createdAt: 'desc' },
+          take: 25,
+        },
+      },
+    });
     if (!booking) throw AppError.notFound('Booking', id);
-    return toSummary(booking);
+    return {
+      ...toSummary(booking),
+      passengerEmail: booking.passengerEmail,
+      notes: booking.notes,
+      distanceMetres: booking.distanceMetres,
+      durationSeconds: booking.durationSeconds,
+      statusHistory: booking.statusHistory.map(toStatusHistoryEntry),
+    };
   },
 
   async listByCustomer(customerId: string, options: { page: number; pageSize: number }) {
@@ -196,6 +248,12 @@ export const bookingsService = {
       pageSize: number;
       status?: BookingStatus;
       statuses?: BookingStatus[];
+      q?: string;
+      assigned?: 'assigned' | 'unassigned';
+      scheduledFrom?: string;
+      scheduledTo?: string;
+      sortBy?: 'createdAt' | 'scheduledAt';
+      sortOrder?: 'asc' | 'desc';
     },
   ) {
     const skip = (options.page - 1) * options.pageSize;
@@ -206,11 +264,34 @@ export const bookingsService = {
     const where = {
       operatorId,
       ...(statusFilter ? { status: statusFilter } : {}),
+      ...(options.assigned === 'assigned' ? { driverId: { not: null } } : {}),
+      ...(options.assigned === 'unassigned' ? { driverId: null } : {}),
+      ...(options.scheduledFrom || options.scheduledTo
+        ? {
+            scheduledAt: {
+              ...(options.scheduledFrom ? { gte: new Date(options.scheduledFrom) } : {}),
+              ...(options.scheduledTo ? { lte: new Date(options.scheduledTo) } : {}),
+            },
+          }
+        : {}),
+      ...(options.q
+        ? {
+            OR: [
+              { reference: { contains: options.q, mode: 'insensitive' as const } },
+              { passengerName: { contains: options.q, mode: 'insensitive' as const } },
+              { passengerPhone: { contains: options.q, mode: 'insensitive' as const } },
+              { pickupPostcode: { contains: options.q, mode: 'insensitive' as const } },
+              { dropoffPostcode: { contains: options.q, mode: 'insensitive' as const } },
+            ],
+          }
+        : {}),
     };
+    const sortBy = options.sortBy ?? 'createdAt';
+    const sortOrder = options.sortOrder ?? 'desc';
     const [items, total] = await Promise.all([
       prisma.booking.findMany({
         where,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { [sortBy]: sortOrder },
         skip,
         take: options.pageSize,
       }),
@@ -226,8 +307,17 @@ export const bookingsService = {
   },
 
   async updateStatus(bookingId: string, toStatus: BookingStatus, actorId: string, reason?: string) {
-    const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
+    const booking = await prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: {
+        operator: { select: { tradingName: true, legalName: true } },
+      },
+    });
     if (!booking) throw AppError.notFound('Booking', bookingId);
+    const allowed = STATUS_TRANSITIONS[booking.status];
+    if (!allowed.includes(toStatus)) {
+      throw AppError.validation(`Invalid status transition from ${booking.status} to ${toStatus}`);
+    }
 
     const updated = await prisma.booking.update({
       where: { id: bookingId },
@@ -269,6 +359,16 @@ export const bookingsService = {
     if (booking.driverId) {
       const event = toStatus === 'CANCELLED' ? 'booking:cancelled' : 'booking:status_changed';
       await emitToDriver(booking.driverId, event, summary);
+    }
+
+    if (toStatus === 'CONFIRMED' && updated.guestAccessToken) {
+      void sendBookingConfirmedToPassenger(
+        updated,
+        booking.operator,
+        updated.guestAccessToken,
+      ).catch((error: unknown) => {
+        console.error('Failed to send booking confirmed email', error);
+      });
     }
 
     return summary;

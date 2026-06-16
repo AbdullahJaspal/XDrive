@@ -10,7 +10,7 @@ import {
   formatFare,
   formatScheduledAt,
 } from '@/lib/booking/display';
-import type { PublicBookingView } from '@uk-phv/shared-types';
+import { BookingStatus, type PublicBookingView } from '@uk-phv/shared-types';
 
 interface TripViewProps {
   booking: PublicBookingView;
@@ -42,6 +42,7 @@ export function TripView({ booking, token }: TripViewProps) {
   const whenLabel = booking.scheduledAt
     ? formatScheduledAt(new Date(booking.scheduledAt))
     : 'As soon as possible';
+  const isConfirmed = booking.status === BookingStatus.CONFIRMED;
 
   return (
     <PageShell>
@@ -51,8 +52,12 @@ export function TripView({ booking, token }: TripViewProps) {
             <div className="border-luxury/40 mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full border">
               <span className="font-display text-luxury text-2xl">✓</span>
             </div>
-            <p className="label-caps text-luxury">Booking confirmed</p>
-            <h1 className="font-display mt-3 text-4xl font-medium">Your trip details</h1>
+            <p className="label-caps text-luxury">
+              {isConfirmed ? 'Booking confirmed' : 'Booking request received'}
+            </p>
+            <h1 className="font-display mt-3 text-4xl font-medium">
+              {isConfirmed ? 'Your trip is confirmed' : 'Your trip details'}
+            </h1>
             <p className="text-muted-foreground mt-3 leading-relaxed">
               A confirmation email has been sent to {booking.passengerEmail}. Save this page or
               download your PDF receipt.

@@ -15,11 +15,10 @@ const querySchema = z.object({
   status: z
     .string()
     .optional()
-    .transform((s) =>
-      s
-        ? (s.split(',').map((x) => x.trim()) as LicenceStatus[])
-        : undefined,
-    ),
+    .transform((s) => (s ? (s.split(',').map((x) => x.trim()) as LicenceStatus[]) : undefined)),
+  q: z.string().max(120).optional(),
+  sortBy: z.enum(['expiryDate', 'status']).default('expiryDate'),
+  sortOrder: z.enum(['asc', 'desc']).default('asc'),
 });
 
 export async function GET(request: NextRequest) {
@@ -28,7 +27,12 @@ export async function GET(request: NextRequest) {
       const query = Object.fromEntries(request.nextUrl.searchParams);
       const parsed = querySchema.safeParse(query);
       if (!parsed.success) throw AppError.validation('Invalid query');
-      return complianceService.listForOperator(operatorId, { status: parsed.data.status });
+      return complianceService.listForOperator(operatorId, {
+        status: parsed.data.status,
+        q: parsed.data.q,
+        sortBy: parsed.data.sortBy,
+        sortOrder: parsed.data.sortOrder,
+      });
     }),
   );
 }

@@ -94,9 +94,34 @@ async function requireDriverForUser(userId: string, role: string) {
 }
 
 export const driversService = {
-  list(operatorId: string) {
+  list(
+    operatorId: string,
+    options?: {
+      q?: string;
+      status?: DriverStatus;
+      sortBy?: 'createdAt' | 'name';
+      sortOrder?: 'asc' | 'desc';
+    },
+  ) {
+    const where = {
+      operatorId,
+      ...(options?.status ? { status: options.status } : {}),
+      ...(options?.q
+        ? {
+            OR: [
+              { user: { firstName: { contains: options.q, mode: 'insensitive' as const } } },
+              { user: { lastName: { contains: options.q, mode: 'insensitive' as const } } },
+              { user: { email: { contains: options.q, mode: 'insensitive' as const } } },
+              { employeeNumber: { contains: options.q, mode: 'insensitive' as const } },
+            ],
+          }
+        : {}),
+    };
+    const sortBy = options?.sortBy ?? 'createdAt';
+    const sortOrder = options?.sortOrder ?? 'desc';
+
     return prisma.driver.findMany({
-      where: { operatorId },
+      where,
       include: {
         user: { select: { id: true, email: true, firstName: true, lastName: true, phone: true } },
         licences: { where: { licenceType: 'PHV_DRIVER' }, orderBy: { expiryDate: 'desc' } },
@@ -106,7 +131,10 @@ export const driversService = {
           orderBy: [{ isPrimary: 'desc' }, { assignedAt: 'desc' }],
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy:
+        sortBy === 'name'
+          ? [{ user: { lastName: sortOrder } }, { user: { firstName: sortOrder } }]
+          : { createdAt: sortOrder },
     });
   },
 
@@ -191,9 +219,7 @@ export const driversService = {
       throw AppError.validation(ui.blockedReason ?? 'Cannot go on duty');
     }
     if (!onDuty && !ui.canGoOffDuty) {
-      throw AppError.validation(
-        ui.blockedReason ?? 'Cannot go off duty while jobs are active',
-      );
+      throw AppError.validation(ui.blockedReason ?? 'Cannot go off duty while jobs are active');
     }
 
     const newStatus: DriverStatus = onDuty ? 'ON_DUTY' : 'OFF_DUTY';
@@ -214,11 +240,7 @@ export const driversService = {
       DispatchEventType.DRIVER_AVAILABILITY,
       availabilityPayload,
     );
-    await emitToDriver(
-      driver.id,
-      DispatchEventType.DRIVER_AVAILABILITY,
-      availabilityPayload,
-    );
+    await emitToDriver(driver.id, DispatchEventType.DRIVER_AVAILABILITY, availabilityPayload);
 
     return {
       status: newStatus,
@@ -301,9 +323,7 @@ export const driversService = {
 
     const allowed = getNextDriverAction(booking.status);
     if (allowed?.status !== toStatus) {
-      throw AppError.validation(
-        `Cannot change status from ${booking.status} to ${toStatus}`,
-      );
+      throw AppError.validation(`Cannot change status from ${booking.status} to ${toStatus}`);
     }
 
     const updated = await bookingsService.updateStatus(bookingId, toStatus, userId, reason);
@@ -380,11 +400,7 @@ export const driversService = {
     };
   },
 
-  async getShiftHistory(
-    userId: string,
-    role: string,
-    options: { page: number; pageSize: number },
-  ) {
+  async getShiftHistory(userId: string, role: string, options: { page: number; pageSize: number }) {
     const driver = await requireDriverForUser(userId, role);
     const skip = (options.page - 1) * options.pageSize;
 
@@ -478,17 +494,14 @@ export const driversService = {
           expiryDate: expiry,
           status: 'EXPIRING_SOON',
           notes:
-            input.notes ??
-            'Licence document uploaded by driver — pending operator verification.',
+            input.notes ?? 'Licence document uploaded by driver — pending operator verification.',
         },
       });
     } else if (input.notes) {
       await prisma.complianceDocument.update({
         where: { id: licence.id },
         data: {
-          notes: licence.notes
-            ? `${licence.notes}\n${input.notes}`
-            : input.notes,
+          notes: licence.notes ? `${licence.notes}\n${input.notes}` : input.notes,
         },
       });
     }

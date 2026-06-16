@@ -18,7 +18,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { getAccessToken } from '@/lib/auth/session-client';
 import { apiRequest } from '@/lib/api/client';
-import { BookingStatus, type BookingSummary } from '@uk-phv/shared-types';
+import { BOOKING_STATUS_LABELS, formatScheduledAt } from '@/lib/booking/display';
+import { BookingStatus, type BookingDetail } from '@uk-phv/shared-types';
 
 const ASSIGNABLE = new Set(['REQUESTED', 'CONFIRMED']);
 
@@ -27,7 +28,7 @@ export default function AdminDispatchDetailPage() {
   const router = useRouter();
   const bookingId = params.id;
 
-  const [booking, setBooking] = useState<BookingSummary | null>(null);
+  const [booking, setBooking] = useState<BookingDetail | null>(null);
   const [drivers, setDrivers] = useState<DispatchDriverOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -40,7 +41,7 @@ export default function AdminDispatchDetailPage() {
     setLoading(true);
     try {
       const [b, d] = await Promise.all([
-        apiRequest<BookingSummary>(`/bookings/${bookingId}`, { token }),
+        apiRequest<BookingDetail>(`/bookings/${bookingId}`, { token }),
         apiRequest<DispatchDriverOption[]>('/drivers', { token }),
       ]);
       setBooking(b);
@@ -63,12 +64,12 @@ export default function AdminDispatchDetailPage() {
     setActionLoading(true);
     setError(null);
     try {
-      const updated = await apiRequest<BookingSummary>(`/bookings/${bookingId}/status`, {
+      await apiRequest<BookingDetail>(`/bookings/${bookingId}/status`, {
         method: 'PATCH',
         token,
         body: JSON.stringify({ status, ...(reason ? { reason } : {}) }),
       });
-      setBooking(updated);
+      await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Update failed');
     } finally {
@@ -80,7 +81,7 @@ export default function AdminDispatchDetailPage() {
     return (
       <AdminShell>
         <PageContainer className="flex min-h-[40vh] items-center justify-center py-16">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <Loader2 className="text-muted-foreground h-8 w-8 animate-spin" />
         </PageContainer>
       </AdminShell>
     );
@@ -103,6 +104,8 @@ export default function AdminDispatchDetailPage() {
   const canAssign = ASSIGNABLE.has(booking.status) && !booking.driverId;
   const canCancel = !['COMPLETED', 'CANCELLED'].includes(booking.status);
 
+  const statusHistory = booking.statusHistory;
+
   return (
     <AdminShell>
       <PageContainer className="space-y-6 py-8 sm:py-10">
@@ -119,7 +122,7 @@ export default function AdminDispatchDetailPage() {
         </div>
 
         {error ? (
-          <p className="text-sm text-destructive" role="alert">
+          <p className="text-destructive text-sm" role="alert">
             {error}
           </p>
         ) : null}
@@ -132,7 +135,7 @@ export default function AdminDispatchDetailPage() {
             </CardHeader>
             <CardContent className="space-y-4 text-sm">
               <div className="flex items-start gap-2">
-                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                <MapPin className="text-muted-foreground mt-0.5 h-4 w-4 shrink-0" />
                 <div>
                   <p className="font-medium">{booking.pickup.address}</p>
                   <p className="text-muted-foreground">{booking.pickup.postcode}</p>
@@ -141,11 +144,11 @@ export default function AdminDispatchDetailPage() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <User className="h-4 w-4 text-muted-foreground" />
+                <User className="text-muted-foreground h-4 w-4" />
                 {booking.passengerName}
               </div>
               <div className="flex items-center gap-2">
-                <Phone className="h-4 w-4 text-muted-foreground" />
+                <Phone className="text-muted-foreground h-4 w-4" />
                 <a href={`tel:${booking.passengerPhone}`} className="text-primary hover:underline">
                   {booking.passengerPhone}
                 </a>
@@ -158,6 +161,24 @@ export default function AdminDispatchDetailPage() {
                   </span>
                 </p>
               ) : null}
+              {booking.scheduledAt ? (
+                <p>
+                  Scheduled:{' '}
+                  <span className="font-medium">
+                    {formatScheduledAt(new Date(booking.scheduledAt))}
+                  </span>
+                </p>
+              ) : (
+                <p>
+                  Scheduled: <span className="font-medium">As soon as possible</span>
+                </p>
+              )}
+              {booking.passengerEmail ? (
+                <p className="text-muted-foreground">{booking.passengerEmail}</p>
+              ) : null}
+              {booking.notes ? (
+                <p className="text-muted-foreground text-xs">Notes: {booking.notes}</p>
+              ) : null}
             </CardContent>
           </Card>
 
@@ -166,13 +187,12 @@ export default function AdminDispatchDetailPage() {
               <Card className="surface-elevated border-0">
                 <CardHeader>
                   <CardTitle className="text-lg">Confirm booking</CardTitle>
-                  <CardDescription>Move from requested to confirmed before dispatch</CardDescription>
+                  <CardDescription>
+                    Move from requested to confirmed before dispatch
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Button
-                    disabled={actionLoading}
-                    onClick={() => void patchStatus('CONFIRMED')}
-                  >
+                  <Button disabled={actionLoading} onClick={() => void patchStatus('CONFIRMED')}>
                     Confirm booking
                   </Button>
                 </CardContent>
@@ -183,9 +203,7 @@ export default function AdminDispatchDetailPage() {
               <Card className="surface-elevated border-0">
                 <CardHeader>
                   <CardTitle className="text-lg">Assign driver</CardTitle>
-                  <CardDescription>
-                    Driver must be on duty with valid PHV licences
-                  </CardDescription>
+                  <CardDescription>Driver must be on duty with valid PHV licences</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <AssignDriverPanel
@@ -205,7 +223,7 @@ export default function AdminDispatchDetailPage() {
                 <CardHeader>
                   <CardTitle className="text-lg">Assignment</CardTitle>
                 </CardHeader>
-                <CardContent className="text-sm text-muted-foreground">
+                <CardContent className="text-muted-foreground text-sm">
                   <p>Driver ID: {booking.driverId}</p>
                   <p>Vehicle ID: {booking.vehicleId ?? '—'}</p>
                 </CardContent>
@@ -223,7 +241,9 @@ export default function AdminDispatchDetailPage() {
                     <Textarea
                       id="cancel-reason"
                       value={cancelReason}
-                      onChange={(e) => { setCancelReason(e.target.value); }}
+                      onChange={(e) => {
+                        setCancelReason(e.target.value);
+                      }}
                       rows={2}
                     />
                   </div>
@@ -237,6 +257,36 @@ export default function AdminDispatchDetailPage() {
                 </CardContent>
               </Card>
             ) : null}
+
+            <Card className="surface-elevated border-0">
+              <CardHeader>
+                <CardTitle className="text-lg">Status timeline</CardTitle>
+                <CardDescription>Latest booking workflow events</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {statusHistory.length === 0 ? (
+                  <p className="text-muted-foreground text-sm">No status changes yet.</p>
+                ) : (
+                  <ol className="space-y-3">
+                    {statusHistory.map((entry) => (
+                      <li key={entry.id} className="border-border rounded-md border p-3 text-sm">
+                        <p className="font-medium">
+                          {(entry.fromStatus
+                            ? `${BOOKING_STATUS_LABELS[entry.fromStatus] ?? entry.fromStatus} -> `
+                            : '') + (BOOKING_STATUS_LABELS[entry.toStatus] ?? entry.toStatus)}
+                        </p>
+                        {entry.reason ? (
+                          <p className="text-muted-foreground mt-1">Reason: {entry.reason}</p>
+                        ) : null}
+                        <p className="text-muted-foreground mt-1 text-xs">
+                          {new Date(entry.createdAt).toLocaleString('en-GB')}
+                        </p>
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </CardContent>
+            </Card>
           </div>
         </div>
       </PageContainer>

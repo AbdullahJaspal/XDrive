@@ -1,13 +1,6 @@
 'use client';
 
-import {
-  AlertTriangle,
-  Car,
-  ClipboardList,
-  Radio,
-  RefreshCw,
-  UserCircle,
-} from 'lucide-react';
+import { AlertTriangle, Car, ClipboardList, Radio, RefreshCw, UserCircle } from 'lucide-react';
 import { AdminDashboardSkeleton } from '@/components/skeletons';
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
@@ -27,6 +20,22 @@ interface DashboardStats {
   activeDrivers: number;
   expiringLicences: number;
   openComplaints: number;
+  attention: {
+    oldestUnassigned: {
+      id: string;
+      reference: string;
+      createdAt: string;
+      passengerName: string;
+    } | null;
+    expiringDocs: { id: string; licenceNumber: string; status: string; expiryDate: string }[];
+    unresolvedComplaints: {
+      id: string;
+      category: string;
+      description: string;
+      status: string;
+      createdAt: string;
+    }[];
+  };
   generatedAt: string;
 }
 
@@ -108,7 +117,7 @@ export default function AdminDashboardPage() {
     return (
       <AdminShell>
         <PageContainer className="flex min-h-[50vh] flex-col items-center justify-center gap-6 text-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+          <div className="bg-destructive/10 text-destructive flex h-14 w-14 items-center justify-center rounded-full">
             <AlertTriangle className="h-7 w-7" />
           </div>
           <p className="text-destructive" role="alert">
@@ -142,7 +151,7 @@ export default function AdminDashboardPage() {
               )}
             </div>
             <h1 className="text-3xl font-bold sm:text-4xl">Operations overview</h1>
-            <p className="mt-1 text-muted-foreground">
+            <p className="text-muted-foreground mt-1">
               Last updated {stats ? new Date(stats.generatedAt).toLocaleString('en-GB') : '—'}
             </p>
           </div>
@@ -220,10 +229,10 @@ export default function AdminDashboardPage() {
                 <Link
                   key={action.label}
                   href={action.href}
-                  className="group rounded-xl border border-border/80 bg-secondary/30 p-4 transition-colors hover:border-primary/30 hover:bg-primary/5"
+                  className="border-border/80 bg-secondary/30 hover:border-primary/30 hover:bg-primary/5 group rounded-xl border p-4 transition-colors"
                 >
-                  <p className="font-medium group-hover:text-primary">{action.label}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">{action.description}</p>
+                  <p className="group-hover:text-primary font-medium">{action.label}</p>
+                  <p className="text-muted-foreground mt-1 text-xs">{action.description}</p>
                 </Link>
               ))}
             </CardContent>
@@ -233,9 +242,86 @@ export default function AdminDashboardPage() {
             <CardHeader>
               <CardTitle className="text-lg">Compliance reminder</CardTitle>
             </CardHeader>
-            <CardContent className="text-sm leading-relaxed text-muted-foreground">
+            <CardContent className="text-muted-foreground text-sm leading-relaxed">
               Dispatch is blocked when driver or vehicle PHV licences are missing or expired. Keep
               compliance documents up to date in the fleet module.
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-3">
+          <Card className="surface-elevated border-0">
+            <CardHeader>
+              <CardTitle className="text-lg">Oldest unassigned booking</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {stats?.attention.oldestUnassigned ? (
+                <div className="space-y-2 text-sm">
+                  <p className="font-mono">{stats.attention.oldestUnassigned.reference}</p>
+                  <p className="text-muted-foreground">
+                    {stats.attention.oldestUnassigned.passengerName}
+                  </p>
+                  <p className="text-muted-foreground">
+                    Waiting since{' '}
+                    {new Date(stats.attention.oldestUnassigned.createdAt).toLocaleString('en-GB')}
+                  </p>
+                  <Button asChild size="sm" variant="outline">
+                    <Link href={`/admin/dispatch/${stats.attention.oldestUnassigned.id}`}>
+                      Open booking
+                    </Link>
+                  </Button>
+                </div>
+              ) : (
+                <p className="text-muted-foreground text-sm">No unassigned bookings.</p>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="surface-elevated border-0">
+            <CardHeader>
+              <CardTitle className="text-lg">Expiring documents</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 text-sm">
+              {stats?.attention.expiringDocs.length ? (
+                <>
+                  {stats.attention.expiringDocs.map((doc) => (
+                    <p key={doc.id} className="text-muted-foreground">
+                      {doc.licenceNumber} · {doc.status} ·{' '}
+                      {new Date(doc.expiryDate).toLocaleDateString('en-GB')}
+                    </p>
+                  ))}
+                  <Button asChild size="sm" variant="outline">
+                    <Link href="/admin/compliance?status=EXPIRING_SOON,EXPIRED">
+                      Open compliance
+                    </Link>
+                  </Button>
+                </>
+              ) : (
+                <p className="text-muted-foreground">No expiring documents.</p>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="surface-elevated border-0">
+            <CardHeader>
+              <CardTitle className="text-lg">Unresolved complaints</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 text-sm">
+              {stats?.attention.unresolvedComplaints.length ? (
+                <>
+                  {stats.attention.unresolvedComplaints.map((complaint) => (
+                    <p key={complaint.id} className="text-muted-foreground">
+                      {complaint.category}: {complaint.description.slice(0, 48)} ·{' '}
+                      {complaint.status}
+                    </p>
+                  ))}
+                  <Button asChild size="sm" variant="outline">
+                    <Link href="/admin/complaints">Open complaints</Link>
+                  </Button>
+                </>
+              ) : (
+                <p className="text-muted-foreground">No unresolved complaints.</p>
+              )}
             </CardContent>
           </Card>
         </div>

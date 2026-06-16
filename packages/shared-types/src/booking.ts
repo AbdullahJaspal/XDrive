@@ -53,6 +53,22 @@ export interface BookingSummary {
   createdAt: string;
 }
 
+export interface BookingStatusHistoryEntry {
+  id: string;
+  fromStatus: BookingStatus | null;
+  toStatus: BookingStatus;
+  reason: string | null;
+  createdAt: string;
+}
+
+export interface BookingDetail extends BookingSummary {
+  passengerEmail: string | null;
+  notes: string | null;
+  distanceMetres: number | null;
+  durationSeconds: number | null;
+  statusHistory: BookingStatusHistoryEntry[];
+}
+
 /** Guest-facing booking details (no internal IDs). */
 export interface PublicBookingView {
   reference: string;

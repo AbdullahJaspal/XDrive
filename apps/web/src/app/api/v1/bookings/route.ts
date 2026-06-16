@@ -38,6 +38,12 @@ export async function GET(request: NextRequest) {
         pageSize: parsed.data.pageSize,
         status: parsed.data.status,
         statuses,
+        q: parsed.data.q,
+        assigned: parsed.data.assigned,
+        scheduledFrom: parsed.data.scheduledFrom,
+        scheduledTo: parsed.data.scheduledTo,
+        sortBy: parsed.data.sortBy,
+        sortOrder: parsed.data.sortOrder,
       });
     }),
   );

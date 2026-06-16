@@ -12,15 +12,15 @@ import { generateBookingReceiptPdf } from '../services/booking-receipt-pdf';
 import { buildPublicBookingView } from '../booking-public-view';
 import { sendEmail } from '../services/email.service';
 
-export async function sendBookingConfirmationToPassenger(
-  booking: Booking,
-  operator: { tradingName: string | null; legalName: string },
-  guestAccessToken: string,
-): Promise<void> {
-  const { isConfigured } = getEmailConfig();
-  const passengerEmail = booking.passengerEmail?.trim();
-  if (!isConfigured || !passengerEmail) return;
-
+async function sendPassengerBookingEmail(params: {
+  booking: Booking;
+  operator: { tradingName: string | null; legalName: string };
+  guestAccessToken: string;
+  title: string;
+  intro: string;
+  subject: string;
+}) {
+  const { booking, operator, guestAccessToken, title, intro, subject } = params;
   const operatorName = operator.tradingName ?? operator.legalName;
   const tripUrl = guestTripUrl(guestAccessToken);
   const receiptUrl = guestReceiptPdfUrl(guestAccessToken);
@@ -28,12 +28,9 @@ export async function sendBookingConfirmationToPassenger(
   const view = buildPublicBookingView(booking, operator);
   const pdf = await generateBookingReceiptPdf(view);
 
-  const intro =
-    'Thank you for booking with us. Your request has been received and our team will confirm your fare before dispatch. Your PDF receipt is attached to this email.';
-
   const html = buildEmailLayout({
     operatorName,
-    title: 'Your booking is confirmed',
+    title,
     intro,
     rows,
     primaryCta: tripUrl ? { label: 'View booking details', href: tripUrl } : undefined,
@@ -46,15 +43,15 @@ export async function sendBookingConfirmationToPassenger(
 
   const text = buildEmailText({
     operatorName,
-    title: 'Your booking is confirmed',
+    title,
     intro,
     rows,
     links: links.length > 0 ? links : undefined,
   });
 
   await sendEmail({
-    to: passengerEmail,
-    subject: `Booking confirmed — ${booking.reference}`,
+    to: booking.passengerEmail ?? '',
+    subject,
     html,
     text,
     attachments: [
@@ -63,5 +60,45 @@ export async function sendBookingConfirmationToPassenger(
         content: pdf,
       },
     ],
+  });
+}
+
+export async function sendBookingRequestReceivedToPassenger(
+  booking: Booking,
+  operator: { tradingName: string | null; legalName: string },
+  guestAccessToken: string,
+): Promise<void> {
+  const { isConfigured } = getEmailConfig();
+  const passengerEmail = booking.passengerEmail?.trim();
+  if (!isConfigured || !passengerEmail) return;
+
+  await sendPassengerBookingEmail({
+    booking,
+    operator,
+    guestAccessToken,
+    title: 'Booking request received',
+    intro:
+      'Thank you for your booking request. We have received it and our team will review and confirm availability shortly. Your PDF receipt is attached for reference.',
+    subject: `Booking request received — ${booking.reference}`,
+  });
+}
+
+export async function sendBookingConfirmedToPassenger(
+  booking: Booking,
+  operator: { tradingName: string | null; legalName: string },
+  guestAccessToken: string,
+): Promise<void> {
+  const { isConfigured } = getEmailConfig();
+  const passengerEmail = booking.passengerEmail?.trim();
+  if (!isConfigured || !passengerEmail) return;
+
+  await sendPassengerBookingEmail({
+    booking,
+    operator,
+    guestAccessToken,
+    title: 'Your booking is confirmed',
+    intro:
+      'Your booking has now been confirmed by our dispatch team. We will keep this trip updated as your driver is assigned and the journey progresses.',
+    subject: `Booking confirmed — ${booking.reference}`,
   });
 }

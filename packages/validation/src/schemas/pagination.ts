@@ -26,6 +26,11 @@ export const operatorBookingsQuerySchema = paginationQuerySchema.extend({
   status: bookingStatusFilter.optional(),
   /** Comma-separated statuses, e.g. REQUESTED,CONFIRMED */
   statuses: z.string().max(200).optional(),
+  q: z.string().max(120).optional(),
+  assigned: z.enum(['assigned', 'unassigned']).optional(),
+  scheduledFrom: z.string().datetime().optional(),
+  scheduledTo: z.string().datetime().optional(),
+  sortBy: z.enum(['createdAt', 'scheduledAt']).default('createdAt'),
 });
 
 export type OperatorBookingsQueryInput = z.infer<typeof operatorBookingsQuerySchema>;
